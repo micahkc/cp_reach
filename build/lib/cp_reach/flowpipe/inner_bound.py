@@ -46,12 +46,10 @@ def omegaLMIs(alpha, A, B, verbosity=0):
         'alpha':alpha
         }
 
-# Force-moment LMI
 def find_omega_invariant_set(omega1, omega2, omega3, verbosity=0):
     # input is max angular velocity in ref trajectory for each of three dimensions.
     iterables =[omega1, omega2, omega3]
     omega = []
-    # Creates grid of all possible omega combinations
     for m in itertools.product(*iterables):
         m = np.array(m)
         omega.append(m)
@@ -62,7 +60,7 @@ def find_omega_invariant_set(omega1, omega2, omega3, verbosity=0):
         omega1 = omegai[0]
         omega2 = omegai[1]
         omega3 = omegai[2]
-        # Compute LQR Control
+        # LQR Control (I think)
         B, K, BK, Ai = omega_solve_control_gain(omega1, omega2, omega3)
         max_BK = np.linalg.svd(BK).S[0]
         # max_BK = 1/np.sqrt(np.linalg.svd(BK).S[2])
@@ -91,7 +89,7 @@ def find_omega_invariant_set(omega1, omega2, omega3, verbosity=0):
     else:
         raise RuntimeError('Optimization failed')
         
-    return sol, max_BK
+    return sol,max_BK
 
 def omega_invariant_set_points(sol, t, w1_norm, beta): # w1_norm: distrubance in alpha  
     P = sol['P']

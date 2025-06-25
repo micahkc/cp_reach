@@ -24,6 +24,7 @@ cp_reach/quadrotor/__init__.py
 cp_reach/quadrotor/log_linearized.py
 cp_reach/rover/__init__.py
 cp_reach/rover/simple_turn.py
+cp_reach/sim/__init__.py
 cp_reach/sim/multirotor_control.py
 cp_reach/sim/multirotor_plan.py
 cp_reach/sim/multirotor_ref_traj.py

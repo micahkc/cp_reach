@@ -1,7 +1,7 @@
 import casadi as ca
 import sympy
 
-from cp_reach.lie.symbolic import taylor_series_near_zero
+from cp_analyzer.lie.symbolic import taylor_series_near_zero
 
 # see https://ethaneade.com/lie.pdf
 
