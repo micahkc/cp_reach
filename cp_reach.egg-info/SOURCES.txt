@@ -5,7 +5,9 @@ cp_reach/__init__.py
 cp_reach.egg-info/PKG-INFO
 cp_reach.egg-info/SOURCES.txt
 cp_reach.egg-info/dependency_links.txt
+cp_reach.egg-info/requires.txt
 cp_reach.egg-info/top_level.txt
+cp_reach/examples/__init__.py
 cp_reach/flowpipe/IntervalHull.py
 cp_reach/flowpipe/__init__.py
 cp_reach/flowpipe/flowpipe.py

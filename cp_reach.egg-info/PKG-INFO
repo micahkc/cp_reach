@@ -7,6 +7,16 @@ License: Apache-2.0
 Requires-Python: >=3.7
 Description-Content-Type: text/markdown
 License-File: LICENSE
+Requires-Dist: casadi>=3.7.0
+Requires-Dist: control>=0.10.1
+Requires-Dist: matplotlib>=3.6.3
+Requires-Dist: numpy>=2.2.6
+Requires-Dist: pandas>=2.2.3
+Requires-Dist: PICOS>=2.6.0
+Requires-Dist: pytope>=0.0.4
+Requires-Dist: scipy>=1.15.3
+Requires-Dist: sympy>=1.13.3
+Requires-Dist: sympy>=1.12
 Dynamic: license-file
 
 # cp_reach

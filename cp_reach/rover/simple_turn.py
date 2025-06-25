@@ -6,7 +6,6 @@ import sympy.physics.mechanics as me
 from matplotlib import pyplot as plt
 from matplotlib.patches import Polygon
 
-
 def emi_disturbance(rover, ax):
     # Plot Abstract Analysis
     pi= math.pi
