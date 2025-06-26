@@ -28,5 +28,6 @@ cp_reach/sim/__init__.py
 cp_reach/sim/multirotor_control.py
 cp_reach/sim/multirotor_plan.py
 cp_reach/sim/multirotor_ref_traj.py
+cp_reach/utils/__init__.py
 cp_reach/utils/plotting.py
 tests/test_core.py

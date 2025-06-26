@@ -21,7 +21,7 @@ def disturbance(quadrotor, ref):
     # Obtain Reference Trajectory
     ref = mr_plan.traj_3()
 
-    # Maximum translational and angular velocity in ref trajectory.
+    # Maximum translational acceleration and angular velocity in ref trajectory.
     ax = [np.max(ref['ax'])]
     ay = [np.max(ref['ay'])]
     az = [-np.min(ref['az'])+9.8]
@@ -29,21 +29,10 @@ def disturbance(quadrotor, ref):
     omega2 = [np.max(ref['omega2'])]
     omega3 = [np.max(ref['omega3'])]
 
-    # Dynamics
-    sol, max_BK = inner_bound.find_omega_invariant_set(omega1, omega2, omega3)
-    # max_BK is the maximum eigenvalue of BK
-    mu_inner = sol['mu1']
 
-    # Initial condition
-    P = sol['P']
-    e0 = np.array([0,0,0]) # initial error
-    beta = (e0.T@P@e0) # initial Lyapnov value
+    dynamics_P, dynamics_mu, omegabound, max_BK = inner_bound.bound_dynamics(omega1, omega2, omega3, w2)
 
-   
-    omegabound = inner_bound.omega_bound(omega1, omega2, omega3, w2, beta) #traj_3 result for inner bound
-    print(omegabound)
-    # Translational (ax,ay,az) LMI.
-
+    
     # Kinematics
     sol_LMI = outer_bound.find_se23_invariant_set(ax, ay, az, omega1, omega2, omega3)
     mu_outer = sol_LMI['mu3']

@@ -1,8 +1,9 @@
 import numpy as np
-import picos
+import cvxpy as cp
 import control
 import itertools
 import scipy
+
 
 def omega_solve_control_gain(omega1, omega2, omega3):
     # A = np.zeros((3,3))
@@ -20,110 +21,140 @@ def omega_solve_control_gain(omega1, omega2, omega3):
     BK = B@K
     return B, K, BK , A+B@K
 
-def omegaLMIs(alpha, A, B, verbosity=0):
-    prob = picos.Problem()
-    P = picos.SymmetricVariable('P', (3, 3))
-    mu1 = picos.RealVariable('mu_1')
-    for Ai in A:
-        block_eq1 = picos.block([
-                [Ai.T*P + P*Ai + alpha*P, P.T*B],
-                [B.T*P, -alpha*mu1*np.eye(3)]])
-    prob.add_constraint(block_eq1 << 0)
-    prob.add_constraint(P >> 1)
-    prob.add_constraint(mu1 >> 1e-5)
-    prob.set_objective('min', mu1)
+
+
+def omegaLMIs(alpha, A_list, B, verbosity=0):
+    """
+    Solves contraction LMIs using CVXPY for a list of closed-loop A matrices.
+
+    Parameters:
+        alpha : float - contraction rate
+        A_list : list of ndarray - closed-loop system matrices (A + BK)
+        B : ndarray - input matrix
+        verbosity : int - logging flag
+
+    Returns:
+        dict with keys:
+            'cost'  - optimal mu1 value (float)
+            'mu1'   - disturbance gain (float)
+            'P'     - contraction metric (3x3 numpy array)
+            'alpha' - input alpha
+            'prob'  - CVXPY problem instance
+    """
+    n = B.shape[0]
+    P = cp.Variable((n, n), symmetric=True)
+    mu1 = cp.Variable(nonneg=True)
+
+    constraints = []
+
+    for Ai in A_list:
+        LMI = cp.bmat([
+            [Ai.T @ P + P @ Ai + alpha * P,        P @ B],
+            [B.T @ P,               -alpha * mu1 * np.eye(B.shape[1])]
+        ])
+        constraints.append(LMI << 0)
+
+    constraints += [
+        P >> np.eye(n),           # Positive definite
+        mu1 >= 1e-5               # Small positive lower bound
+    ]
+
+    objective = cp.Minimize(mu1)
+    prob = cp.Problem(objective, constraints)
+
     try:
-        prob.solve(solver="cvxopt", options={'verbosity': verbosity})
+        prob.solve(solver=cp.CVXOPT, verbose=(verbosity > 0))
         cost = mu1.value
+        P_value = P.value
     except Exception as e:
-        print(f"Exception: {e}")
+        print(f"Exception during CVXPY solve: {e}")
         cost = -1
+        P_value = None
+
     return {
         'cost': cost,
-        'prob': prob,
-        'mu1': mu1.value,
-        'P': np.round(np.array(P.value), 3),
-        'alpha':alpha
-        }
+        'mu1': mu1.value if mu1.value is not None else None,
+        'P': np.round(P_value, 3) if P_value is not None else None,
+        'alpha': alpha,
+        'prob': prob
+    }
+
 
 # Force-moment LMI
-def find_omega_invariant_set(omega1, omega2, omega3, verbosity=0):
-    # input is max angular velocity in ref trajectory for each of three dimensions.
-    iterables =[omega1, omega2, omega3]
-    omega = []
-    # Creates grid of all possible omega combinations
-    for m in itertools.product(*iterables):
-        m = np.array(m)
-        omega.append(m)
+def find_omega_invariant_set(omega1_range, omega2_range, omega3_range, verbosity=0):
+    """
+    Solves for contraction metric and disturbance bound over a grid of angular velocities.
     
-    A = []
-    eig = []
-    for omegai in omega:
-        omega1 = omegai[0]
-        omega2 = omegai[1]
-        omega3 = omegai[2]
-        # Compute LQR Control
-        B, K, BK, Ai = omega_solve_control_gain(omega1, omega2, omega3)
-        max_BK = np.linalg.svd(BK).S[0]
-        # max_BK = 1/np.sqrt(np.linalg.svd(BK).S[2])
-        A.append(Ai)
-        eig.append(np.linalg.eig(Ai)[0])
+    Parameters:
+        omega1_range, omega2_range, omega3_range : iterables of angular velocities
+        verbosity : int, level of logging (0 = silent)
     
-    # we use fmin to solve a line search problem in alpha for minimum gamma
-    if verbosity > 0:
-        print('line search')
-    
-    # we perform a line search over alpha to find the largest convergence rate possible
-    #print(f'Eigenvalues {eig}')
-    alpha_1 = -np.real(np.max(eig)) # smallest magnitude value from eig-value, and range has to be positive
-    #print(f'alpha_1: {alpha_1}')
-    alpha_opt = scipy.optimize.fminbound(lambda alpha: omegaLMIs(alpha, A, B, verbosity=verbosity)['cost'], x1=1e-5, x2=alpha_1, disp=True if verbosity > 0 else False)
-    #print(f'optimal alpha {alpha_opt}')
-    # if the alpha optimization fail, pick a fixed value for alpha.
-    sol = omegaLMIs(alpha_opt, A, B)
-    #print(f'mu1: {sol['mu1']}, cost: {sol['cost']}')
-    prob = sol['prob']
-    if prob.status == 'optimal':
-        P = prob.variables['P'].value
-        mu1 =  prob.variables['mu_1'].value
-        if verbosity > 0:
-            print(sol)
-    else:
-        raise RuntimeError('Optimization failed')
+    Returns:
+        sol : dict containing contraction solution, including 'P', 'mu1', etc.
+        max_BK : float, maximum control gain magnitude from BK
+    """
+    # Generate grid of all omega combinations
+    omega_grid = np.array(list(itertools.product(omega1_range, omega2_range, omega3_range)))
+
+    A_list = []
+    eig_list = []
+    max_BK = 0
+
+    for omega in omega_grid:
+        w1, w2, w3 = omega
+        B, K, BK, A = omega_solve_control_gain(w1, w2, w3)
+
+        A_list.append(A)
+        eig_list.append(np.linalg.eigvals(A))
         
+        bk_norm = np.linalg.svd(BK).S[0]
+        max_BK = max(max_BK, bk_norm)
+
+    # Compute conservative upper bound on alpha for LMI line search
+    alpha_upper = -np.real(np.max(eig_list))  # most unstable eigenvalue (smallest real part)
+
+    if verbosity > 0:
+        print("Performing line search for optimal alpha...")
+
+    # Minimize cost over alpha in the range (very small, conservative upper bound)
+    alpha_opt = scipy.optimize.fminbound(
+        lambda alpha: omegaLMIs(alpha, A_list, B, verbosity=verbosity)['cost'],
+        x1=1e-5, x2=alpha_upper,
+        disp=(verbosity > 0)
+    )
+
+    sol = omegaLMIs(alpha_opt, A_list, B)
+
+    if sol['prob'].status != 'optimal':
+        raise RuntimeError("Optimization failed")
+
+    if verbosity > 0:
+        print(f"Alpha: {alpha_opt:.4f}, mu1: {sol['mu1']}, Cost: {sol['cost']:.4e}")
+
     return sol, max_BK
 
-def omega_invariant_set_points(sol, t, w1_norm, beta): # w1_norm: distrubance in alpha  
-    P = sol['P']
-    val = np.real(beta*np.exp(-sol['alpha']*t) + (sol['mu1']*w1_norm**2)*(1-np.exp(-sol['alpha']*t))) # V(t)
-    #print('val', val)
-    
-    # 1 = xT(P/V(t))x, equation for the ellipse
-    evals, evects = np.linalg.eig(P/val)
-    radii = 1/np.sqrt(evals)
-    R = evects@np.diag(radii)
-    R = np.real(R)
-    
-    # draw sphere
-    points = []
-    n = 25
-    for u in np.linspace(0, 2*np.pi, n):
-        for v in np.linspace(0, 2*np.pi, 2*n):
-            points.append([np.cos(u)*np.sin(v), np.sin(u)*np.sin(v), np.cos(v)])
-    for v in np.linspace(0, 2*np.pi, 2*n):
-        for u in np.linspace(0, 2*np.pi, n):
-            points.append([np.cos(u)*np.sin(v), np.sin(u)*np.sin(v), np.cos(v)])
-    points = np.array(points).T
-    return R@points, val
 
-def omega_bound(omega1, omega2, omega3, a_dist, beta):
-    sol, _ = find_omega_invariant_set(omega1, omega2, omega3)
-    points, _ = omega_invariant_set_points(sol, 20, a_dist, beta) 
-    max_omega1 = points[0,:].max()
-    min_omega1 = abs(points[0,:].min())
-    max_omega2 = points[1,:].max()
-    min_omega2 = abs(points[1,:].min())
-    max_omega3 = points[2,:].max()
-    min_omega3 = abs(points[2,:].min())
-    bound = np.linalg.norm(np.array([max_omega1,min_omega1,max_omega2,min_omega2,max_omega3,min_omega3]), np.inf)
-    return bound
+
+def bound_dynamics(omega1, omega2, omega3, dist):
+    # Get contraction solution and associated gain
+    sol, max_BK = find_omega_invariant_set(omega1, omega2, omega3)
+    
+    # Unpack metric and disturbance scaling
+    P = sol['P']
+    mu = sol['mu1']
+    
+    # Compute the radius of the ellipsoid
+    val = mu * dist**2
+    r = np.sqrt(val)
+    
+    # Eigendecomposition of P
+    evals, evects = np.linalg.eig(P)
+    R = np.real(evects @ np.diag(1 / np.sqrt(evals)))  # Shape transform to unit ball
+    
+    # Compute max coordinate (infinity norm) across all directions
+    bound = r * np.max(np.linalg.norm(R, axis=1))  # exact, fast
+
+    return P, mu, bound, max_BK
+
+
+
