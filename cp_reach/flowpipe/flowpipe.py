@@ -102,39 +102,34 @@ def flowpipes(ref, step, w1, omegabound, sol, axis):
     return flowpipes, nom
 
 
-
-
-
-
 import matplotlib.pyplot as plt
 
-def plot_flowpipes(nom, flowpipes, axis='xy'):
+def plot_flowpipes(nom, flowpipes, ax, axis='xy'):
     """
-    Plot nominal trajectory and flowpipes.
+    Plot nominal trajectory and flowpipes on a given matplotlib axis.
 
     Parameters:
-        nom: (N, 2) array of nominal trajectory points
-        flowpipes: list of (M_i, 2) arrays representing reachable sets
-        n: number of segments (flowpipes)
-        axis: 'xy' or 'xz' — used for y-axis labeling
+        nom        : (N, 2) array of nominal trajectory points
+        flowpipes  : list of (M_i, 2) arrays representing reachable sets
+        ax         : matplotlib Axes object to draw on
+        axis       : 'xy' or 'xz' — used to label y-axis
     """
-    plt.figure(figsize=(12, 8))
-
-    
-
     # Plot flowpipes
-    for i,itm in enumerate(flowpipes):
-        plt.plot(itm[:, 0], itm[:, 1], 'c--', label='Flow Pipe' if i == 0 else None)
+    for i, itm in enumerate(flowpipes):
+        ax.plot(itm[:, 0], itm[:, 1], 'c--', label='Flow Pipe' if i == 0 else None)
 
     # Plot nominal trajectory
-    plt.plot(nom[:, 0], nom[:, 1], 'k-', label='Reference Trajectory')
+    ax.plot(nom[:, 0], nom[:, 1], 'k-', label='Reference Trajectory')
 
-    plt.title('Flowpipes')
-    plt.xlabel('x')
-    plt.ylabel('y' if axis == 'xy' else 'z')
-    plt.axis('equal')
-    plt.legend(fontsize=12, loc='upper left')
-    plt.grid(True)
-    plt.tight_layout()
-    plt.show()
+    ax.set_title('Flowpipes')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y' if axis == 'xy' else 'z')
+    ax.axis('equal')
+    ax.grid(True)
+
+    # Avoid duplicate legends
+    handles, labels = ax.get_legend_handles_labels()
+    if labels:
+        ax.legend(handles, labels, fontsize=12, loc='upper left')
+
 

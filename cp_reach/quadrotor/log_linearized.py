@@ -67,7 +67,7 @@ def disturbance(quadrotor, ref=None):
     lower_bound = inv_points.min(axis=1)
     upper_bound = inv_points.max(axis=1)
 
-    return inv_points, points_algebra, lower_bound, upper_bound, kinematics_sol
+    return inv_points, points_algebra, lower_bound, upper_bound, kinematics_sol, omega_bound
 
 
 def plot2DInvSet(points, inv_points, ax1):
