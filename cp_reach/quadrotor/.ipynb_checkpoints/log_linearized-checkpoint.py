@@ -13,62 +13,44 @@ import cp_reach.sim.multirotor_control as mr_control
 
 
 
-def disturbance(quadrotor, ref=None):
-    """
-    Compute disturbance-based reachable sets for a quadrotor.
+def disturbance(quadrotor, ref):
+    # Get disturbance from quadrotor configuration file.
+    w1 = quadrotor['thrust_disturbance'] # disturbance for translational (impact a)  thrust disturbance for outer loop
+    w2 = quadrotor['gyro_disturbance'] # disturbance for angular (impact alpha)  inner loop angular disturbance BKd
 
-    Inputs:
-        quadrotor : dict
-            Must contain keys 'thrust_disturbance' and 'gyro_disturbance'.
-        ref : optional, if None will generate a reference trajectory using mr_plan.traj_3()
+    # Obtain Reference Trajectory
+    ref = mr_plan.traj_3()
 
-    Returns:
-        inv_points       : (6, N) points in SE(3) group (position + orientation)
-        points_algebra   : (3, N) points from dynamic ellipsoid in angular velocity space
-        lower_bound      : (6,) vector of component-wise minima in SE(3)
-        upper_bound      : (6,) vector of component-wise maxima in SE(3)
-        kinematics_sol   : (sol)
-    """
-    # Get disturbances
-    w1 = quadrotor['thrust_disturbance']  # affects translational motion
-    w2 = quadrotor['gyro_disturbance']    # affects angular velocity
+    # Maximum translational acceleration and angular velocity in ref trajectory.
+    ax = [np.max(ref['ax'])]
+    ay = [np.max(ref['ay'])]
+    az = [-np.min(ref['az'])+9.8]
+    omega1 = [np.max(ref['omega1'])]
+    omega2 = [np.max(ref['omega2'])]
+    omega3 = [np.max(ref['omega3'])]
 
-    # Load reference trajectory if not provided
-    if ref is None:
-        ref = mr_plan.traj_3()
+    # Dynamics. omega_bound is the bound on angular speed. It will feed into the Kinematics LMI.
+    dynamics_P, dynamics_mu, omega_bound, max_BK = inner_bound.bound_dynamics(omega1, omega2, omega3, w2)
 
-    # Extract peak accelerations and angular velocities
-    ax = [np.max(np.abs(ref['ax']))]
-    ay = [np.max(np.abs(ref['ay']))]
-    az = [np.max(9.8 - np.min(ref['az']))]  # compensate gravity-like term
-    omega1 = [np.max(np.abs(ref['omega1']))]
-    omega2 = [np.max(np.abs(ref['omega2']))]
-    omega3 = [np.max(np.abs(ref['omega3']))]
 
-    # --- Inner Loop: Dynamics (angular motion, 6x6 Lyapunov)
-    dynamics_sol, omega_bound = inner_bound.bound_dynamics(omega1, omega2, omega3, w2)
-    dynamics_P1 = dynamics_sol['P'] / (dynamics_sol['mu1'] * w2 ** 2)
-    points_algebra = inner_bound.obtain_points(dynamics_P1)
-
-    # --- Outer Loop: Kinematics (SE(2,3), 9x9 Lyapunov)
+    # Kinematics. Find reachable set in the lie algebra for se23. This is 9 dimensional
     kinematics_sol = outer_bound.find_se23_invariant_set(ax, ay, az, omega1, omega2, omega3)
     val = kinematics_sol['mu2'] * w1**2 + kinematics_sol['mu3'] * omega_bound**2
-    kinematics_P1 = kinematics_sol['P'] / val
+    P_normalized = kinematics_sol['P'] / val
+    #x.T(P/val)x = 1 defines an ellipsoid in a 9 dimensional space
 
-    # Project ellipsoid in se(2,3) onto relevant subspaces
-    translation_points, _ = outer_bound.project_ellipsoid_subspace(kinematics_P1, [0,1,2])
-    velocity_points, _    = outer_bound.project_ellipsoid_subspace(kinematics_P1, [3,4,5])
-    rotation_points, _    = outer_bound.project_ellipsoid_subspace(kinematics_P1, [6,7,8])
+    # Project to get reachable sets for translation, velocity, and angle.
+    translation_points, _ = outer_bound.project_ellipsoid_subspace(P_normalized, [1,2,3])
+    velocity_points, _ = outer_bound.project_ellipsoid_subspace(P_normalized, [4,5,6])
+    rotation_points, _ = outer_bound.project_ellipsoid_subspace(P_normalized, [7,8,9])
 
-    # Exponential map from se(3) to SE(3)
+    # Map invariant set points in Lie Algebra to the corresponding Lie Group. This is the true reachable set.
     inv_points = outer_bound.exp_map(translation_points, rotation_points)
-
-    # Extract bounding box of reachable set in SE(3)
+    # find the min and max of each component. [x,y,z,thetax,thetay,thetaz]
     lower_bound = inv_points.min(axis=1)
     upper_bound = inv_points.max(axis=1)
 
-    return inv_points, points_algebra, lower_bound, upper_bound, kinematics_sol
-
+    return inv_points, points, points_theta, omega_bound, kinematics_sol
 
 def plot2DInvSet(points, inv_points, ax1):
     ax1.plot(points[0, :], points[1, :], 'g', label='with Dynamic Inversion')

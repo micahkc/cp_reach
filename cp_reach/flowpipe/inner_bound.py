@@ -68,7 +68,7 @@ def omegaLMIs(alpha, A_list, B, verbosity=0):
         P_value = P.value
     except Exception as e:
         print(f"Exception during CVXPY solve: {e}")
-        cost = -1
+        cost = np.inf
         P_value = None
 
     return {
@@ -154,7 +154,47 @@ def bound_dynamics(omega1, omega2, omega3, dist):
     # Compute max coordinate (infinity norm) across all directions
     bound = r * np.max(np.linalg.norm(R, axis=1))  # exact, fast
 
-    return P, mu, bound, max_BK
+    return sol, bound
+
+import numpy as np
+
+def obtain_points(M, n=30):
+    """
+    Generate surface points on the ellipsoid defined by xᵀMx = 1.
+
+    Parameters:
+        M : (3x3) ndarray, symmetric positive definite matrix
+        n : int, resolution of point grid (default: 30)
+
+    Returns:
+        points : (3, N) ndarray of 3D points on the ellipsoid surface
+    """
+    # Eigen-decomposition to get shape (radii) and orientation
+    eigvals, eigvecs = np.linalg.eigh(M)
+    eigvals = np.real(eigvals)
+    eigvecs = np.real(eigvecs)
+
+    # Radii of ellipsoid are inverse sqrt of eigenvalues
+    radii = 1.0 / np.sqrt(eigvals)
+    R = eigvecs @ np.diag(radii)  # Transformation matrix
+
+    # Sample unit sphere
+    u = np.linspace(0, 2 * np.pi, n)
+    v = np.linspace(0, np.pi, n)
+    uu, vv = np.meshgrid(u, v)
+
+    x = np.cos(uu) * np.sin(vv)
+    y = np.sin(uu) * np.sin(vv)
+    z = np.cos(vv)
+
+    # Stack into shape (3, N)
+    sphere_points = np.stack([x.flatten(), y.flatten(), z.flatten()], axis=0)
+
+    # Apply transformation to map unit sphere to ellipsoid
+    ellipsoid_points = R @ sphere_points
+
+    return ellipsoid_points
+
 
 
 

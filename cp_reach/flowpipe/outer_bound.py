@@ -1,5 +1,5 @@
 import numpy as np
-import picos
+import cvxpy as cp
 import control
 import itertools
 import scipy
@@ -24,205 +24,240 @@ def se23_solve_control(ax,ay,az,omega1,omega2,omega3):
     BK = B@K
     return B, K, BK , A+B@K
 
-def SE23LMIs(alpha, A, B, verbosity=0):
-    prob = picos.Problem()
-    P = picos.SymmetricVariable('P', (9, 9))
-    P1 = P[:3, :]
+
+
+def SE23LMIs(alpha, A_list, verbosity=0):
+    """
+    Solve Lyapunov LMI for SE(2,3) system using cvxpy.
+    
+    Parameters:
+        alpha : float
+            Lyapunov decay rate
+        A_list : list of ndarray
+            System matrices A_i to enforce Lyapunov inequality on
+        B : ndarray
+            Input matrix (not used directly here, but for compatibility)
+        verbosity : int
+            Logging level
+
+    Returns:
+        dict containing 'P', 'mu1', 'mu2', 'mu3', 'cost', 'alpha', and 'prob'
+    """
+    P = cp.Variable((9, 9), symmetric=True)
+    mu1 = cp.Variable()
+    mu2 = cp.Variable()
+    mu3 = cp.Variable()
+    gamma = mu1 + mu2 + mu3
+
+    constraints = []
+
+    # Block structure for Schur complement terms
+    P1 = P[0:3, :]
     P2 = P[3:6, :]
-    P3 = P[6:, :]
-    mu1 = picos.RealVariable('mu_1')
-    mu2 = picos.RealVariable('mu_2')
-    mu3 = picos.RealVariable('mu_3')
-    gam = mu1 + mu2 + mu3
-    for Ai in A:
-        block_eq1 = picos.block([
-                [Ai.T*P + P*Ai + alpha*P, P1.T, P2.T, P3.T],
-                [P1, -alpha*mu1*np.eye(3), 0, 0],
-                [P2, 0, -alpha*mu2*np.eye(3), 0],
-                [P3, 0, 0, -alpha*mu3*np.eye(3)]])
-        prob.add_constraint(block_eq1 << 0)
-    prob.add_constraint(block_eq1 << 0)
-    prob.add_constraint(P >> 1)
-    prob.add_constraint(mu1 >> 1e-5)
-    prob.add_constraint(mu2 >> 1e-5)
-    prob.add_constraint(mu3 >> 1e-5)
-    prob.set_objective('min', gam)
+    P3 = P[6:9, :]
+
+    I3 = np.eye(3)
+    zero33 = np.zeros((3,3))
+
+    for Ai in A_list:
+        LMI = cp.bmat([
+            [Ai.T @ P + P @ Ai + alpha * P,   P1.T,             P2.T,             P3.T],
+            [P1,                              -alpha * mu1 * I3, zero33,             zero33],
+            [P2,                              zero33,             -alpha * mu2 * I3, zero33],
+            [P3,                              zero33,             zero33,             -alpha * mu3 * I3]
+        ])
+        constraints.append(LMI << 0)
+
+    # Enforce P >> I (numerically: P ≥ 1 * I)
+    constraints += [
+        P >> np.eye(9),
+        mu1 >= 1e-5,
+        mu2 >= 1e-5,
+        mu3 >= 1e-5
+    ]
+
+    prob = cp.Problem(cp.Minimize(gamma), constraints)
+
     try:
-        prob.solve(solver="cvxopt", options={'verbosity': verbosity})
-        cost = gam.value
-    except Exception as e:
-        #print('exception', e)
-        cost = -1
-    return {
-        'cost': cost,
-        'prob': prob,
-        'mu1': mu1.value,
-        'mu2': mu2.value,
-        'mu3': mu3.value,
-        'P': np.array(P.value),
-        'alpha':alpha    
+        prob.solve(solver=cp.CVXOPT, verbose=(verbosity > 0))
+        if prob.status not in ["optimal", "optimal_inaccurate"]:
+            raise ValueError("LMI solver status: " + prob.status)
+
+        return {
+            'cost': gamma.value,
+            'prob': prob,
+            'mu1': mu1.value,
+            'mu2': mu2.value,
+            'mu3': mu3.value,
+            'P': P.value,
+            'alpha': alpha
         }
 
-def find_se23_invariant_set(ax,ay,az,omega1,omega2,omega3, verbosity=0):
+    except Exception as e:
+        if verbosity > 0:
+            print(f"Solver failed at alpha = {alpha:.4f}: {e}")
+        return {
+            'cost': np.inf,
+            'prob': None,
+            'mu1': None,
+            'mu2': None,
+            'mu3': None,
+            'P': None,
+            'alpha': alpha
+        }
 
-    iterables =[omega1, omega2, omega3, ax, ay, az]
-    nu = []
-    for m in itertools.product(*iterables):
-        m = np.array(m)
-        nu.append(m)
-    
-    A = []
-    eig = []
-    for nui in nu:
-        omega1 = nui[0]
-        omega2 = nui[1]
-        omega3 = nui[2]
-        ax = nui[3]
-        ay = nui[4]
-        az = nui[5]
 
+def find_se23_invariant_set(ax_range, ay_range, az_range, omega1_range, omega2_range, omega3_range, verbosity=0):
+    """
+    Computes a matrix P and mu1 for the SE(2,3) system 
+    using a grid over angular and linear acceleration ranges.
+
+    Parameters:
+        ax_range, ay_range, az_range : iterables over linear acceleration inputs
+        omega1_range, omega2_range, omega3_range : iterables over angular velocity inputs
+        verbosity : int, print detail level
+
+    Returns:
+        sol : dict containing keys 'P', 'mu_1', 'alpha', 'cost', 'prob'
+    """
+    # Generate all combinations of [omega1, omega2, omega3, ax, ay, az]
+    grid = itertools.product(omega1_range, omega2_range, omega3_range, ax_range, ay_range, az_range)
+    A_matrices = []
+    eigenvalues = []
+
+    for nu in grid:
+        omega1, omega2, omega3, ax, ay, az = nu
+
+        # Define system matrices
         B_lie, K, BK, _ = se23_solve_control(0, 0, 9.8, 0, 0, 0)
-        A0 = -ca.DM(SE23Dcm.ad_matrix(np.array([0,0,0,ax,ay,az,omega1,omega2,omega3]))+SE23Dcm.adC_matrix())
-        Ai = np.array(A0+BK)
-        A.append(Ai)
-        eig.append(np.linalg.eig(Ai)[0])
-    
+        ad = SE23Dcm.ad_matrix(np.array([0, 0, 0, ax, ay, az, omega1, omega2, omega3]))
+        A = -ca.DM(ad + SE23Dcm.adC_matrix()) + BK
+        A_np = np.array(A)
+
+        A_matrices.append(A_np)
+        eigenvalues.append(np.linalg.eigvals(A_np))
+
+    # Line search over alpha to find feasible contraction rate
     if verbosity > 0:
-        print('line search')
-    # we perform a line search over alpha to find the feasible solution for LMIs
-    # alpha_list = np.linspace(0.4,0.8,41)
-    alpha_list = np.linspace(0.2,0.9,41)
-    for a in alpha_list:
-        #print(a)
-        
-        sol = SE23LMIs(a, A, B_lie)
-        prob = sol['prob']
-        #print(prob.status)
-        if prob.status == 'optimal':
-            P = prob.variables['P'].value
-            mu1 =  prob.variables['mu_1'].value
-            if verbosity > 0:
-                print(sol)
-            break
-        else:
-            #print('Optimization failed, trying next alpha')
-            continue
-        
+        print("Performing line search over alpha...")
+
+    alpha_upper = -np.real(np.max(eigenvalues))  # most unstable eigenvalue (smallest real part)
+
+    alpha_opt = scipy.optimize.fminbound(
+        lambda alpha: SE23LMIs(alpha, A_matrices)['cost'],
+        x1=1e-5, x2=alpha_upper,
+        disp=(verbosity > 0)
+    )
+
+
+    sol = SE23LMIs(alpha_opt, A_matrices)
+
+    if sol['prob'].status != 'optimal':
+        raise RuntimeError("Optimization failed")
+
+    if verbosity > 0:
+        print(f"Alpha: {alpha_opt:.4f}, mu1: {sol['mu1']}, Cost: {sol['cost']:.4e}")
+
     return sol
 
-def se23_invariant_set_points_theta(sol, t, w1_norm, w2_norm, beta): # w1_norm: a # w2_norm: omega  
-    val = np.real(beta*np.exp(-sol['alpha']*t) + (sol['mu2']*w1_norm**2 + sol['mu3']*w2_norm**2)*(1-np.exp(-sol['alpha']*t)))+0.01 # V(t)
-    # 1 = xT(P/V(t))x, equation for the ellipse
-    P1 = sol['P']/val
-    A1 = P1[:6,:6]
-    B1 = P1[:6,6:]
-    C1 = P1[6:,:6]
-    D1 = P1[6:,6:]
-    P = D1-C1@np.linalg.inv(A1)@B1
-    
-    evals, evects = np.linalg.eig(P)
-    radii = 1/np.sqrt(evals)
-    R = evects@np.diag(radii)
-    R = np.real(R)
-    
-    # draw sphere
-    points = []
-    n = 30
-    for u in np.linspace(0, 2*np.pi, n):
-        for v in np.linspace(0, 2*np.pi, 2*n):
-            points.append([np.cos(u)*np.sin(v), np.sin(u)*np.sin(v), np.cos(v)])
-    for v in np.linspace(0, 2*np.pi, 2*n):
-        for u in np.linspace(0, 2*np.pi, n):
-            points.append([np.cos(u)*np.sin(v), np.sin(u)*np.sin(v), np.cos(v)])
-    points = np.array(points).T
-    return R@points, val
 
-def se23_invariant_set_points(sol, t, w1_norm, w2_norm, beta): # w1_norm: a, w2_norm: omega
-    val = np.real(beta*np.exp(-sol['alpha']*t) + (sol['mu2']*w1_norm**2 + sol['mu3']*w2_norm**2)*(1-np.exp(-sol['alpha']*t)))+0.01 # V(t)
-    # 1 = xT(P/V(t))x, equation for the ellipse
-    P1 = sol['P']/val
-    A1 = P1[:3,:3]
-    B1 = P1[:3,3:]
-    C1 = P1[3:,:3]
-    D1 = P1[3:,3:]
-    P = A1-B1@np.linalg.inv(D1)@C1
-    
-    evals, evects = np.linalg.eig(P)
-    radii = 1/np.sqrt(evals)
-    R = evects@np.diag(radii)
-    R = np.real(R)
-    
-    # draw sphere
-    points = []
-    n = 30
-    for u in np.linspace(0, 2*np.pi, n):
-        for v in np.linspace(0, 2*np.pi, 2*n):
-            points.append([np.cos(u)*np.sin(v), np.sin(u)*np.sin(v), np.cos(v)])
-    for v in np.linspace(0, 2*np.pi, 2*n):
-        for u in np.linspace(0, 2*np.pi, n):
-            points.append([np.cos(u)*np.sin(v), np.sin(u)*np.sin(v), np.cos(v)])
-    points = np.array(points).T
-    return R@points, val
 
-def se23_invariant_set_points_v(sol, t, w1_norm, w2_norm, beta): # w1_norm: a, w2_norm: omega
-    val = np.real(beta*np.exp(-sol['alpha']*t) + (sol['mu2']*w1_norm**2 + sol['mu3']*w2_norm**2)*(1-np.exp(-sol['alpha']*t)))+0.01 # V(t)
-    # 1 = xT(P/V(t))x, equation for the ellipse
-    P = sol['P']
-    P1 = P[:3, :3]
-    P2 = P[:3, 3:6]
-    P3 = P[:3, 6:]
-    P4 = P[3:6, :3]
-    P5 = P[3:6, 3:6]
-    P6 = P[3:6, 6:]
-    P7 = P[6:, :3]
-    P8 = P[6:, 3:6]
-    P9 = P[6:, 6:]
-    Pnew = np.vstack((np.hstack((P1, P3, P2)), np.hstack((P7, P9, P8)), np.hstack((P4, P6, P5))))
-    A1 = Pnew[:6,:6]
-    B1 = Pnew[:6,6:]
-    C1 = Pnew[6:,:6]
-    D1 = Pnew[6:,6:]
-    P = A1-B1@np.linalg.inv(D1)@C1
-    
-    evals, evects = np.linalg.eig(P)
-    radii = 1/np.sqrt(evals)
-    R = evects@np.diag(radii)
-    R = np.real(R)
-    
-    # draw sphere
-    points = []
-    n = 30
-    for u in np.linspace(0, 2*np.pi, n):
-        for v in np.linspace(0, 2*np.pi, 2*n):
-            points.append([np.cos(u)*np.sin(v), np.sin(u)*np.sin(v), np.cos(v)])
-    for v in np.linspace(0, 2*np.pi, 2*n):
-        for u in np.linspace(0, 2*np.pi, n):
-            points.append([np.cos(u)*np.sin(v), np.sin(u)*np.sin(v), np.cos(v)])
-    points = np.array(points).T
-    return R@points, val
+def project_ellipsoid_subspace(M, indices):
+    """
+    Project a high-dimensional ellipsoid xᵀMx = 1 onto a 3D subspace.
 
-def exp_map(points, points_theta):
-    inv_points = np.zeros((6,points.shape[1]))
+    Parameters:
+        P             : (n x n) ndarray, Lyapunov matrix
+        indices       : list of 3 ints, indices to project onto (e.g., [0,1,2] for position)
+        val           : float, scalar value (e.g., V(t)) to scale the ellipsoid
+        return_matrix : bool, if True returns (R, radii) instead of points
+
+    Returns:
+        points : (3, N) ndarray of ellipsoid surface points
+        val    : float, same as input (for convenience)
+    """
+
+    # Step 2: Partition P
+    all_indices = np.arange(M.shape[0])
+    comp_indices = np.setdiff1d(all_indices, indices)
+
+    # Extract blocks
+    A = M[np.ix_(comp_indices, comp_indices)]
+    B = M[np.ix_(comp_indices, indices)]
+    C = M[np.ix_(indices, comp_indices)]
+    D = M[np.ix_(indices, indices)]
+
+    # Step 3: Schur complement to eliminate complementary variables
+    M_sub = D - C @ np.linalg.inv(A) @ B
+
+    # Step 4: Ellipsoid shape
+    evals, evects = np.linalg.eig(M_sub)
+    evals = np.real(evals)
+    evects = np.real(evects)
+    radii = 1.0 / np.sqrt(evals)
+    R = evects @ np.diag(radii)
+
+    # Step 5: Sample sphere and map to ellipsoid
+    n = 30
+    u = np.linspace(0, 2 * np.pi, n)
+    v = np.linspace(0, np.pi, n)
+    uu, vv = np.meshgrid(u, v)
+    x = np.cos(uu) * np.sin(vv)
+    y = np.sin(uu) * np.sin(vv)
+    z = np.cos(vv)
+    sphere_points = np.stack([x.flatten(), y.flatten(), z.flatten()], axis=0)
+
+    ellipsoid_points = R @ sphere_points
+
+    #xTM_subx = 1 defines the ellipoid from which ellipsoid_points are taken
+    return ellipsoid_points, M_sub
+
+def exp_map(points, rotation_points):
+    """
+    Applies the matrix exponential map from se(3) (Lie algebra) to SE(3) (Lie group)
+    for a batch of 6D twists.
+
+    Inputs:
+        points        : np.ndarray of shape (3, N)
+                        Translation components (x, y, z) of N twist vectors
+        rotation_points  : np.ndarray of shape (3, N)
+                        Rotation components (theta_x, theta_y, theta_z) of N twist vectors
+
+    Output:
+        inv_points    : np.ndarray of shape (6, N)
+                        SE(3) vector representation of transformed rigid-body poses
+                        via exp(wedge(x)) for each column x = [v; w]
+    """
+
+    # Allocate space for the output — one 6D vector for each input twist
+    inv_points = np.zeros((6, points.shape[1]))
+
+    # Loop over each point (column)
     for i in range(points.shape[1]):
-        Lie_points = SE3Dcm.wedge(np.array([points[0,i], points[1,i], points[2,i], points_theta[0,i], points_theta[1,i], points_theta[2,i]]))
-        exp_points = ca.DM(SE3Dcm.vector(SE3Dcm.exp(Lie_points)))
-        exp_points = np.array(exp_points).reshape(6,)
-        inv_points[:,i] = np.array([exp_points[0], exp_points[1], exp_points[2], exp_points[3], exp_points[4], exp_points[5]])
+
+        # Assemble the 6D twist vector: [translation; rotation]
+        twist_vec = np.array([
+            points[0, i],         # x
+            points[1, i],         # y
+            points[2, i],         # z
+            rotation_points[0, i],   # θ_x
+            rotation_points[1, i],   # θ_y
+            rotation_points[2, i]    # θ_z
+        ])
+
+        # Convert 6D twist vector to 4×4 matrix in se(3) Lie algebra
+        Lie_matrix = SE3Dcm.wedge(twist_vec)
+
+        # Apply matrix exponential to get SE(3) transformation matrix
+        exp_matrix = SE3Dcm.exp(Lie_matrix)
+
+        # Convert SE(3) matrix back to a 6D vector representation (e.g., [pos; axis-angle])
+        exp_vector = SE3Dcm.vector(exp_matrix)
+
+        # Convert from CasADi DM to NumPy array and reshape to (6,)
+        exp_vector = np.array(ca.DM(exp_vector)).reshape(6,)
+
+        # Store the result
+        inv_points[:, i] = exp_vector
+
     return inv_points
-
-def inv_bound(sol, t, omegabound, abound, ebeta):
-    points, val = se23_invariant_set_points(sol, t, omegabound, abound, ebeta)
-    points_theta, val = se23_invariant_set_points_theta(sol, t, omegabound, 0.5, ebeta)
-    inv_points = np.zeros((3,points.shape[1]))
-    for i in range(points.shape[1]):
-        Lie_points = SE3Dcm.wedge(np.array([points[0,i], points[1,i], points[2,i], points_theta[0,i], points_theta[1,i], points_theta[2,i]]))
-        exp_points = ca.DM(SE3Dcm.vector(SE3Dcm.exp(Lie_points)))
-        exp_points = np.array(exp_points).reshape(6,)
-        inv_points[:,i] = np.array([exp_points[0], exp_points[1], exp_points[2]])
-    xmax = inv_points[0,:].max()
-    ymax = inv_points[1,:].max()
-    zmax = inv_points[2,:].max()
-    xmin = inv_points[0,:].min()
-    ymin = inv_points[1,:].min()
-    zmin = inv_points[2,:].min()
-    return np.array([xmax,ymax,zmax,xmin,ymin,zmin])

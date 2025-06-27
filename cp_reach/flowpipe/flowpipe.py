@@ -4,121 +4,137 @@ import casadi as ca
 import matplotlib.pyplot as plt
 from cp_reach.lie.se3 import *
 from .IntervalHull import qhull2D, minBoundingRect
-from .outer_bound import se23_invariant_set_points, se23_invariant_set_points_theta, exp_map
+from .outer_bound import project_ellipsoid_subspace, exp_map
 import datetime
 
-def rotate_point(point, angle):
-    new_point = np.array([point[0] * np.cos(angle) - point[1] * np.sin(angle),
-                       point[0] * np.sin(angle) + point[1] * np.cos(angle)])
-    return new_point 
+def rotate_point(points, angle):
+    """
+    Rotate a batch of 2D points counterclockwise by `angle` radians.
 
-def flowpipes(ref, n, beta, w1, omegabound, sol, axis):
+    Args:
+        points: np.ndarray of shape (2, N)
+        angle: float (radians)
 
-    x_r = ref['x']
-    y_r = ref['y']
-    z_r = ref['z']
-    
-    #####NEED to change this if wants to show different axis#####
+    Returns:
+        np.ndarray of shape (2, N): rotated points
+    """
+    R = np.array([
+        [np.cos(angle), -np.sin(angle)],
+        [np.sin(angle),  np.cos(angle)]
+    ])
+    return R @ points
+
+def flowpipes(ref, step, w1, omegabound, sol, axis):
+    """
+    Compute flowpipes for a nonlinear system on SE(3) using LMI-based invariant set.
+    Assumes:
+        - No initial deviation (beta = 0)
+        - t = ∞, i.e., steady-state invariant set
+        - Visualization in 2D (xy or xz plane)
+
+    Parameters:
+        ref         : dict with keys 'x', 'y', 'z' (nominal trajectory)
+        step        : step size
+        w1          : linear disturbance bound (scalar or vector)
+        omegabound  : angular velocity disturbance bound (scalar or vector)
+        sol         : dict from SE23LMIs (contains 'P', 'mu2', 'mu3')
+        axis        : 'xy' or 'xz' — determines 2D projection
+
+    Returns:
+        flowpipes     : list of np.ndarray polygons (reachable set per segment)
+        intervalhull  : list of np.ndarray rectangles (bounding boxes of nominal path)
+        nom           : 2D projected nominal trajectory
+    """
+    x_r, y_r, z_r = ref['x'], ref['y'], ref['z']
+
+    # Choose projection direction
     if axis == 'xy':
-        nom = np.array([x_r,y_r]).T
+        nom = np.vstack((x_r, y_r)).T
+        proj_indices = [0, 1]  # use x, y
     elif axis == 'xz':
-        nom = np.array([x_r,z_r]).T
+        nom = np.vstack((x_r, z_r)).T
+        proj_indices = [0, 2]  # use x, z
+    else:
+        raise ValueError("axis must be 'xy' or 'xz'.")
+
+    # Compute steady-state bound for V(∞)
+    mu2, mu3 = sol['mu2'], sol['mu3']
+    P = sol['P']
+    val = mu2 * (np.linalg.norm(w1)**2) + mu3 * (np.linalg.norm(omegabound)**2) + 0.01
+
+    # Project Lyapunov ellipsoid into translational and rotational subspaces
+    points, _ = project_ellipsoid_subspace(P / val, [0, 1, 2])
+    points_theta, _ = project_ellipsoid_subspace(P / val, [6, 7, 8])
+
+    # Map to SE(3) using exponential map
+    inv_points = exp_map(points, points_theta)  # shape: (6, N)
+
+    # Keep only translation part for 2D projection
+    position = inv_points[0:3, :]               # x, y, z
+    inv_points_2d = position[proj_indices, :]   # select x-y or x-z
+
+    # Rotate invariant set to approximate convex hull
+    inv_set = [[], []]
+    for theta in np.linspace(0, np.pi, 10):
+        inv_set1 = rotate_point(inv_points_2d, theta)  # shape: (2, N)
+        inv_set = np.append(inv_set, inv_set1, axis=1)
+
+    inv_poly = inv_set.T  # shape: (N, 2)
+
 
     flowpipes = []
-    intervalhull = []
-    t_vect = []
+    for i in range(0, len(nom)-1, step):  # avoid overflow
+        point = nom[i]
+        tangent = nom[i+1] - nom[i]
+        direction = tangent / np.linalg.norm(tangent)
+        normal = np.array([-direction[1], direction[0]])
+
+        R = np.array([[normal[0], -normal[1]],
+                    [normal[1],  normal[0]]])
+
+        rotated_inv = inv_poly @ R.T
+        translated = rotated_inv + point
+        translated = np.vstack((translated, translated[0]))  # close polygon
+
+        flowpipes.append(translated)
+
+
+    return flowpipes, nom
+
+
+
+
+
+
+import matplotlib.pyplot as plt
+
+def plot_flowpipes(nom, flowpipes, axis='xy'):
+    """
+    Plot nominal trajectory and flowpipes.
+
+    Parameters:
+        nom: (N, 2) array of nominal trajectory points
+        flowpipes: list of (M_i, 2) arrays representing reachable sets
+        n: number of segments (flowpipes)
+        axis: 'xy' or 'xz' — used for y-axis labeling
+    """
+    plt.figure(figsize=(12, 8))
+
     
-    step0 = int(len(x_r)/n)
-    
-    a = 0    
-    for i in range(n):
-        if i < len(x_r)%n:
-            steps = step0 + 1
-        else:
-            steps = step0
-        b = a + steps
-        if i == n-1:
-            nom_i = nom[a:len(x_r)+1,:]
-            if nom_i.shape[0] < 3:
-                nom_i = np.vstack((nom_i, np.array(nom[-1,:])+0.01))
-        else:
-            nom_i = nom[a:b+1,:]
-        # Get interval hull
-        hull_points = qhull2D(nom_i)
-        (rot_angle, area, width, height, center_point, corner_points) = minBoundingRect(hull_points)
-            
-        t = 0.05*a
-        t_vect.append(t)
-        
-        if t == 0:
-            t = 1e-3
-        points, val1 = se23_invariant_set_points(sol, t, w1, omegabound, beta) # invariant set at t0 in that time interval
-        points2, val2 = se23_invariant_set_points(sol, 0.05*b, w1, omegabound, beta) # invariant set at t final in that time interval
-        points_theta, _ = se23_invariant_set_points_theta(sol, t, w1, omegabound, beta)
-        
-        if val2 > val1: 
-            points = points2
-            points_theta, _ = se23_invariant_set_points_theta(sol, 0.05*b, w1, omegabound, beta)
 
-        inv_points = exp_map(points, points_theta)
+    # Plot flowpipes
+    for i,itm in enumerate(flowpipes):
+        plt.plot(itm[:, 0], itm[:, 1], 'c--', label='Flow Pipe' if i == 0 else None)
 
-        ######NEED TO change this if want to show other (0 for delete x, 1 for y, 2 for z)#######
-        if axis == 'xy':
-            inv_points = np.delete(inv_points,2,0) # we want to show x-z, delete y
-        elif axis == 'xz': 
-            inv_points = np.delete(inv_points,1,0) # we want to show x-z, delete y
+    # Plot nominal trajectory
+    plt.plot(nom[:, 0], nom[:, 1], 'k-', label='Reference Trajectory')
 
-        inv_set = [[],[]]
-        ang = np.linspace(0, np.pi, 10)
-        for theta in ang:
-            inv_set1 = rotate_point(inv_points, theta) # it only gives you x and y
-            inv_set = np.append(inv_set, inv_set1, axis = 1) 
-            
-        P2 = Polytope(inv_set.T) 
-        
-        # minkowski sum
-        print("minkowski sum")
-        print(datetime.datetime.now())
-        P1 = Polytope(corner_points) # interval hull
-        
-        P = P1 + P2 # sum
-
-        p1_vertices = P1.V
-        p_vertices = P.V
-
-        p_vertices = np.append(p_vertices, p_vertices[0].reshape(1,2), axis = 0) # add the first point to last, or the flow pipes will miss one line
-        
-        # create list for flow pipes and interval hull
-        flowpipes.append(p_vertices)
-        intervalhull.append(P1.V)
-        
-        a = b
-        print("done with minkowski sum")
-        print(datetime.datetime.now())
-    return flowpipes, intervalhull, nom, t_vect
-
-def plot_flowpipes(nom, flowpipes, n, axis):
-    # flow pipes
-    plt.figure(figsize=(15,15))
-    h_nom = plt.plot(nom[:,0], nom[:,1], color='k', linestyle='-')
-    for facet in range(n):
-        hs_ch_LMI = plt.plot(flowpipes[facet][:,0], flowpipes[facet][:,1], color='c', linestyle='--')
-
-    # plt.axis('equal')
-    plt.title('Flow Pipes')
-    if axis == 'xy':
-        plt.ylabel('y')
-    elif axis == 'xz':
-        plt.ylabel('z')
+    plt.title('Flowpipes')
     plt.xlabel('x')
-    lgd = plt.legend(loc=2, prop={'size': 18})
-    ax = lgd.axes
-    handles, labels = ax.get_legend_handles_labels()
-    handles.append(h_nom[0])
-    labels.append('Reference Trajectory')
-    handles.append(hs_ch_LMI[0])
-    labels.append('Flow Pipes')
-    lgd._legend_box = None
-    lgd._init_legend_box(handles, labels)
-    lgd._set_loc(lgd._loc)
-    lgd.set_title(lgd.get_title().get_text())
+    plt.ylabel('y' if axis == 'xy' else 'z')
+    plt.axis('equal')
+    plt.legend(fontsize=12, loc='upper left')
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
