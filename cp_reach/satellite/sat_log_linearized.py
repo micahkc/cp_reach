@@ -13,57 +13,63 @@ import cp_reach.sim.multirotor_control as mr_control
 
 
 
-def disturbance(satellite, ref):
-    # Get disturbance from satellite configuration file
-    w1 = satellite['thrust_disturbance'] # disturbance for translational (impact a)  thrust disturbance for outer loop
-    w2 = satellite['gyro_disturbance'] # disturbance for angular (impact alpha)  inner loop angular disturbance BKd
+def disturbance(gyro_disturbance, ref=None):
+    """
+    Compute disturbance-based reachable sets for a quadrotor.
 
-    # Obtain Reference Trajectory
-    ref = satellite_plan.orbit_trajectory() ########## NEEDS TO BE DEFINED ########
+    Inputs:
+        quadrotor : dict
+            Must contain keys 'thrust_disturbance' and 'gyro_disturbance'.
+        ref : optional, if None will generate a reference trajectory using mr_plan.traj_3()
 
-    # Maximum translational and angular acceleration in ref trajectory.
-    ax = [np.max(ref['ax'])]
-    ay = [np.max(ref['ay'])]
-    az = [-np.min(ref['az'])+9.8]
-    omega1 = [np.max(ref['omega1'])]
-    omega2 = [np.max(ref['omega2'])]
-    omega3 = [np.max(ref['omega3'])]
+    Returns:
+        inv_points       : (6, N) points in SE(3) group (position + orientation)
+        points_algebra   : (3, N) points from dynamic ellipsoid in angular velocity space
+        lower_bound      : (6,) vector of component-wise minima in SE(3)
+        upper_bound      : (6,) vector of component-wise maxima in SE(3)
+        kinematics_sol   : (sol)
+    """
+    # Get disturbances
+    w_accel = quadrotor['thrust_disturbance']  # affects translational motion
+    w_angular_accel = quadrotor['gyro_disturbance']    # affects angular velocity
 
-    sol, max_BK = inner_bound.find_omega_invariant_set(omega1, omega2, omega3)
-    # max_BK is the maximum eigenvalue of BK
-    mu_inner = sol['mu1']
+    # Load reference trajectory if not provided
+    if ref is None:
+        ref = mr_plan.traj_3()
 
-    # Initial condition
-    P = sol['P']
-    e0 = np.array([0,0,0]) # initial error
-    beta = (e0.T@P@e0) # initial Lyapnov value
+    # Extract peak accelerations and angular velocities
+    ax = [np.max(np.abs(ref['ax']))]
+    ay = [np.max(np.abs(ref['ay']))]
+    az = [np.max(9.8 - np.min(ref['az']))]  # compensate gravity-like term
+    omega1 = [np.max(np.abs(ref['omega1']))]
+    omega2 = [np.max(np.abs(ref['omega2']))]
+    omega3 = [np.max(np.abs(ref['omega3']))]
 
-    # find bound
-    omegabound = inner_bound.omega_bound(omega1, omega2, omega3, w2, beta) #traj_3 result for inner bound
-    print(omegabound)
-    # Translational (ax,ay,az) LMI.
-    sol_LMI = outer_bound.find_se23_invariant_set(ax, ay, az, omega1, omega2, omega3)
-    mu_outer = sol_LMI['mu3']
+    # --- Inner Loop: Dynamics (angular motion, 6x6 Lyapunov)
+    dynamics_sol, omega_bound = inner_bound.bound_dynamics(omega1, omega2, omega3, w)
+    dynamics_P1 = dynamics_sol['P'] / (dynamics_sol['mu1'] * w2 ** 2)
+    points_algebra = inner_bound.obtain_points(dynamics_P1)
 
-    # Initial condition
-    e = np.array([0,0,0,0,0,0,0,0,0]) # initial error in Lie group (nonlinear)
+    # --- Outer Loop: Kinematics (SE(2,3), 9x9 Lyapunov)
+    # kinematics_sol = outer_bound.find_se23_invariant_set(ax, ay, az, omega1, omega2, omega3)
+    # val = kinematics_sol['mu2'] * w1**2 + kinematics_sol['mu3'] * omega_bound**2
+    # kinematics_P1 = kinematics_sol['P'] / val
 
-    # transfer initial error to Lie algebra (linear)
-    e0 = ca.DM(SE23.SE23Dcm.vee(SE23.SE23Dcm.log(SE23.SE23Dcm.matrix(e))))
-    e0 = np.array([e0]).reshape(9,)
-    ebeta = e0.T@sol_LMI['P']@e0
+    # # Project ellipsoid in se(2,3) onto relevant subspaces
+    # translation_points, _ = outer_bound.project_ellipsoid_subspace(kinematics_P1, [0,1,2])
+    # velocity_points, _    = outer_bound.project_ellipsoid_subspace(kinematics_P1, [3,4,5])
+    # rotation_points, _    = outer_bound.project_ellipsoid_subspace(kinematics_P1, [6,7,8])
 
-    print('finding invariant set')
-    # find invairant set points in Lie algebra (linear)
-    points, val = outer_bound.se23_invariant_set_points(sol_LMI, 20, w1, omegabound, ebeta)
-    points_theta, val = outer_bound.se23_invariant_set_points_theta(sol_LMI, 20, w1, omegabound, ebeta)
+    # # Exponential map from se(3) to SE(3)
+    # inv_points = outer_bound.exp_map(translation_points, rotation_points)
 
-    # map invariant set points to Lie group (nonlinear)
-    inv_points = outer_bound.exp_map(points, points_theta)
+    # # Extract bounding box of reachable set in SE(3)
+    # lower_bound = inv_points.min(axis=1)
+    # upper_bound = inv_points.max(axis=1)
 
-    mu_total = (mu_outer*mu_inner)*max_BK
+    # return inv_points, points_algebra, lower_bound, upper_bound, kinematics_sol, omega_bound
+    return points_algebra
 
-    return inv_points, mu_total, points, points_theta, ebeta, omegabound, sol_LMI
 
 def plot2DInvSet(points, inv_points, ax1):
     ax1.plot(points[0, :], points[1, :], 'g', label='with Dynamic Inversion')
