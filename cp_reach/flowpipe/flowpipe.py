@@ -1,5 +1,5 @@
 import numpy as np
-from pytope import Polytope
+# from pytope import Polytope
 import casadi as ca
 import matplotlib.pyplot as plt
 from cp_reach.lie.se3 import *

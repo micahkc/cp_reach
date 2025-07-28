@@ -30,8 +30,8 @@ def disturbance(quadrotor, ref=None):
         kinematics_sol   : (sol)
     """
     # Get disturbances
-    w1 = quadrotor['thrust_disturbance']  # affects translational motion
-    w2 = quadrotor['gyro_disturbance']    # affects angular velocity
+    w_accel = quadrotor['thrust_disturbance']  # affects translational motion
+    w_angular_accel = quadrotor['gyro_disturbance']    # affects angular velocity
 
     # Load reference trajectory if not provided
     if ref is None:
