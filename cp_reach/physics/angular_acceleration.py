@@ -4,7 +4,6 @@ import control
 import itertools
 import scipy
 
-
 def omega_solve_control_gain(omega1, omega2, omega3):
     # A = np.zeros((3,3))
     A =  -np.array([[0, -omega3, omega2],
@@ -21,14 +20,12 @@ def omega_solve_control_gain(omega1, omega2, omega3):
     BK = B@K
     return B, K, BK , A+B@K
 
-
-
 def omegaLMIs(alpha, A_list, B, verbosity=0):
     """
-    Solves contraction LMIs using CVXPY for a list of closed-loop A matrices.
+    Solves lyapunov LMIs using CVXPY for a list of closed-loop A matrices.
 
     Parameters:
-        alpha : float - contraction rate
+        alpha : float - lyapunov rate
         A_list : list of ndarray - closed-loop system matrices (A + BK)
         B : ndarray - input matrix
         verbosity : int - logging flag
@@ -37,7 +34,7 @@ def omegaLMIs(alpha, A_list, B, verbosity=0):
         dict with keys:
             'cost'  - optimal mu1 value (float)
             'mu1'   - disturbance gain (float)
-            'P'     - contraction metric (3x3 numpy array)
+            'P'     - lyapunov matrix (3x3 numpy array)
             'alpha' - input alpha
             'prob'  - CVXPY problem instance
     """
@@ -81,24 +78,22 @@ def omegaLMIs(alpha, A_list, B, verbosity=0):
 
 
 # Force-moment LMI
-def find_omega_invariant_set(omega1_range, omega2_range, omega3_range, verbosity=0):
+def solve_inv_set(omega1_range, omega2_range, omega3_range, verbosity=0):
     """
-    Solves for contraction metric and disturbance bound over a grid of angular velocities.
+    Solves for lyapunov matrix and disturbance bound over a grid of angular velocities.
     
     Parameters:
         omega1_range, omega2_range, omega3_range : iterables of angular velocities
         verbosity : int, level of logging (0 = silent)
     
     Returns:
-        sol : dict containing contraction solution, including 'P', 'mu1', etc.
-        max_BK : float, maximum control gain magnitude from BK
+        sol : dict containing lyapunov solution, including 'P', 'mu1', etc.
     """
     # Generate grid of all omega combinations
     omega_grid = np.array(list(itertools.product(omega1_range, omega2_range, omega3_range)))
 
     A_list = []
     eig_list = []
-    max_BK = 0
 
     for omega in omega_grid:
         w1, w2, w3 = omega
@@ -106,9 +101,6 @@ def find_omega_invariant_set(omega1_range, omega2_range, omega3_range, verbosity
 
         A_list.append(A)
         eig_list.append(np.linalg.eigvals(A))
-        
-        bk_norm = np.linalg.svd(BK).S[0]
-        max_BK = max(max_BK, bk_norm)
 
     # Compute conservative upper bound on alpha for LMI line search
     alpha_upper = -np.real(np.max(eig_list))  # most unstable eigenvalue (smallest real part)
@@ -131,32 +123,7 @@ def find_omega_invariant_set(omega1_range, omega2_range, omega3_range, verbosity
     if verbosity > 0:
         print(f"Alpha: {alpha_opt:.4f}, mu1: {sol['mu1']}, Cost: {sol['cost']:.4e}")
 
-    return sol, max_BK
-
-
-
-def bound_dynamics(omega1, omega2, omega3, dist):
-    # Get contraction solution and associated gain
-    sol, max_BK = find_omega_invariant_set(omega1, omega2, omega3)
-    
-    # Unpack metric and disturbance scaling
-    P = sol['P']
-    mu = sol['mu1']
-    
-    # Compute the radius of the ellipsoid
-    val = mu * dist**2
-    r = np.sqrt(val)
-    
-    # Eigendecomposition of P
-    evals, evects = np.linalg.eig(P)
-    R = np.real(evects @ np.diag(1 / np.sqrt(evals)))  # Shape transform to unit ball
-    
-    # Compute max coordinate (infinity norm) across all directions
-    bound = r * np.max(np.linalg.norm(R, axis=1))  # exact, fast
-
-    return sol, bound
-
-import numpy as np
+    return sol
 
 def obtain_points(M, n=30):
     """
@@ -194,6 +161,7 @@ def obtain_points(M, n=30):
     ellipsoid_points = R @ sphere_points
 
     return ellipsoid_points
+
 
 
 

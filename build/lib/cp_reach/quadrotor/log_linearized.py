@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 import casadi as ca
 
 import cp_reach.lie.SE23 as SE23
-import cp_reach.flowpipe.inner_bound  as inner_bound
-import cp_reach.flowpipe.outer_bound as outer_bound
-import cp_reach.flowpipe.flowpipe as flowpipe
+import cp_reach.physics.angular_acceleration  as angular_acceleration
+import cp_reach.physics.rigid_body as rigid_body
+import cp_reach.physics.flowpipe as flowpipe
 #import cp_reach.sim.multirotor_control as mr_control
 import cp_reach.sim.multirotor_plan as mr_plan
 import cp_reach.sim.multirotor_control as mr_control
@@ -29,7 +29,7 @@ def disturbance(quadrotor, ref):
     omega2 = [np.max(ref['omega2'])]
     omega3 = [np.max(ref['omega3'])]
 
-    sol, max_BK = inner_bound.find_omega_invariant_set(omega1, omega2, omega3)
+    sol, max_BK = angular_acceleration.find_omega_invariant_set(omega1, omega2, omega3)
     # max_BK is the maximum eigenvalue of BK
     mu_inner = sol['mu1']
 
@@ -39,10 +39,10 @@ def disturbance(quadrotor, ref):
     beta = (e0.T@P@e0) # initial Lyapnov value
 
     # find bound
-    omegabound = inner_bound.omega_bound(omega1, omega2, omega3, w2, beta) #traj_3 result for inner bound
+    omegabound = angular_acceleration.omega_bound(omega1, omega2, omega3, w2, beta) #traj_3 result for inner bound
     print(omegabound)
     # Translational (ax,ay,az) LMI.
-    sol_LMI = outer_bound.find_se23_invariant_set(ax, ay, az, omega1, omega2, omega3)
+    sol_LMI = rigid_body.find_se23_invariant_set(ax, ay, az, omega1, omega2, omega3)
     mu_outer = sol_LMI['mu3']
 
     # Initial condition
@@ -55,11 +55,11 @@ def disturbance(quadrotor, ref):
 
     print('finding invariant set')
     # find invairant set points in Lie algebra (linear)
-    points, val = outer_bound.se23_invariant_set_points(sol_LMI, 20, w1, omegabound, ebeta)
-    points_theta, val = outer_bound.se23_invariant_set_points_theta(sol_LMI, 20, w1, omegabound, ebeta)
+    points, val = rigid_body.se23_invariant_set_points(sol_LMI, 20, w1, omegabound, ebeta)
+    points_theta, val = rigid_body.se23_invariant_set_points_theta(sol_LMI, 20, w1, omegabound, ebeta)
 
     # map invariant set points to Lie group (nonlinear)
-    inv_points = outer_bound.exp_map(points, points_theta)
+    inv_points = rigid_body.exp_map(points, points_theta)
 
     mu_total = (mu_outer*mu_inner)*max_BK
 

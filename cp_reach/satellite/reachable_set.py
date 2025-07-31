@@ -4,16 +4,16 @@ import matplotlib.pyplot as plt
 import casadi as ca
 
 import cp_reach.lie.SE23 as SE23
-import cp_reach.flowpipe.inner_bound  as inner_bound
-import cp_reach.flowpipe.outer_bound as outer_bound
-import cp_reach.flowpipe.flowpipe as flowpipe
+import cp_reach.physics.angular_acceleration  as angular_acceleration
+import cp_reach.physics.rigid_body as rigid_body
+import cp_reach.physics.flowpipe as flowpipe
 #import cp_reach.sim.multirotor_control as mr_control
 import cp_reach.sim.multirotor_plan as mr_plan
 import cp_reach.sim.multirotor_control as mr_control
 
 
 
-def disturbance(quadrotor, ref=None):
+def disturbance(gyro_disturbance, ref=None):
     """
     Compute disturbance-based reachable sets for a quadrotor.
 
@@ -30,9 +30,8 @@ def disturbance(quadrotor, ref=None):
         kinematics_sol   : (sol)
     """
     # Get disturbances
-    w1 = quadrotor['thrust_disturbance']  # affects translational motion m/s^2
-    w2 = quadrotor['gyro_disturbance']    # affects angular velocity rad/s^2
-
+    w_accel = quadrotor['thrust_disturbance']  # affects translational motion
+    w_angular_accel = quadrotor['gyro_disturbance']    # affects angular velocity
 
     # Load reference trajectory if not provided
     if ref is None:
@@ -47,28 +46,29 @@ def disturbance(quadrotor, ref=None):
     omega3 = [np.max(np.abs(ref['omega3']))]
 
     # --- Inner Loop: Dynamics (angular motion, 6x6 Lyapunov)
-    dynamics_sol, omega_bound = inner_bound.bound_dynamics(omega1, omega2, omega3, w2)
+    dynamics_sol, omega_bound = angular_acceleration.bound_dynamics(omega1, omega2, omega3, w)
     dynamics_P1 = dynamics_sol['P'] / (dynamics_sol['mu1'] * w2 ** 2)
-    points_algebra = inner_bound.obtain_points(dynamics_P1)
+    points_algebra = angular_acceleration.obtain_points(dynamics_P1)
 
     # --- Outer Loop: Kinematics (SE(2,3), 9x9 Lyapunov)
-    kinematics_sol = outer_bound.find_se23_invariant_set(ax, ay, az, omega1, omega2, omega3)
-    val = kinematics_sol['mu2'] * w1**2 + kinematics_sol['mu3'] * omega_bound**2
-    kinematics_P1 = kinematics_sol['P'] / val
+    # kinematics_sol = outer_bound.find_se23_invariant_set(ax, ay, az, omega1, omega2, omega3)
+    # val = kinematics_sol['mu2'] * w1**2 + kinematics_sol['mu3'] * omega_bound**2
+    # kinematics_P1 = kinematics_sol['P'] / val
 
-    # Project ellipsoid in se(2,3) onto relevant subspaces
-    translation_points, _ = outer_bound.project_ellipsoid_subspace(kinematics_P1, [0,1,2])
-    velocity_points, _    = outer_bound.project_ellipsoid_subspace(kinematics_P1, [3,4,5])
-    rotation_points, _    = outer_bound.project_ellipsoid_subspace(kinematics_P1, [6,7,8])
+    # # Project ellipsoid in se(2,3) onto relevant subspaces
+    # translation_points, _ = outer_bound.project_ellipsoid_subspace(kinematics_P1, [0,1,2])
+    # velocity_points, _    = outer_bound.project_ellipsoid_subspace(kinematics_P1, [3,4,5])
+    # rotation_points, _    = outer_bound.project_ellipsoid_subspace(kinematics_P1, [6,7,8])
 
-    # Exponential map from se(3) to SE(3)
-    inv_points = outer_bound.exp_map(translation_points, rotation_points)
+    # # Exponential map from se(3) to SE(3)
+    # inv_points = outer_bound.exp_map(translation_points, rotation_points)
 
-    # Extract bounding box of reachable set in SE(3)
-    lower_bound = inv_points.min(axis=1)
-    upper_bound = inv_points.max(axis=1)
+    # # Extract bounding box of reachable set in SE(3)
+    # lower_bound = inv_points.min(axis=1)
+    # upper_bound = inv_points.max(axis=1)
 
-    return inv_points, points_algebra, lower_bound, upper_bound, kinematics_sol, omega_bound
+    # return inv_points, points_algebra, lower_bound, upper_bound, kinematics_sol, omega_bound
+    return points_algebra
 
 
 def plot2DInvSet(points, inv_points, ax1):

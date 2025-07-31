@@ -5,7 +5,7 @@ from cp_reach.lie.SE23 import *
 from .multirotor_ref_traj import f_ref
 from scipy import signal
 import matplotlib.pyplot as plt
-from cp_reach.flowpipe.outer_bound import inv_bound
+from cp_reach.physics.rigid_body import inv_bound
 
 def se23_solve_control(ax,ay,az,omega1,omega2,omega3):
     A = -ca.DM(SE23Dcm.ad_matrix(np.array([0,0,0,ax,ay,az,omega1,omega2,omega3]))+SE23Dcm.adC_matrix())

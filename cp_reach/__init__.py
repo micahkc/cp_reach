@@ -7,7 +7,7 @@ from . import sim
 from . import rover
 from . import utils
 from . import quadrotor
-from . import flowpipe
+from . import physics
 from . import examples
 from . import lie
 
