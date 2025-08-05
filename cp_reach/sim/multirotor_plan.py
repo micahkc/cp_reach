@@ -591,85 +591,6 @@ def traj_from_coords(coordinates_file):
     return ref
 
 
-def traj_2():
-    num_coords = 5
-    n_legs = num_coords-1 # Number of coordinates - 1
-    poly_deg = 7
-    min_deriv = 4  # min snap
-    bc_deriv = 4
-
-    pos = [[0,0,0],
-           [9.12,-0.46,0],
-           [11.16,8.27,0],
-           [20.27,8.15,0],
-           [19.6,-1.9,0]]
-
-    vel = [[0,0,0],
-           [1.5,1.15,0],
-           [1.5,1,0],
-           [0,0,0],
-           [0,0,0]]
-
-    acc = [[0,0,0] for i in range(num_coords)]
-    jerk = [[0,0,0] for i in range(num_coords)]
-    
-
-    bc = np.stack((pos,vel,acc,jerk))
-    print(bc)
-    k_time = 1e5
-
-    #print('finding cost function')
-    cost = find_cost_function(
-        poly_deg=poly_deg,
-        min_deriv=min_deriv,
-        rows_free=[],
-        n_legs=n_legs,
-        bc_deriv=bc_deriv,
-    )
-    
-
-    #print('planning trajectory')
-    T_legs = [5.5,4.1, 4.4, 8.72]
-
-
-    ref = planner2(bc, cost, n_legs, poly_deg, k_time, T_legs)
-
-    # # plt.figure()
-    # # plt.plot(ref['t'], ref['x'], label="x")
-    # # plt.plot(ref['t'], ref['y'], label="y")
-    # # plt.plot(ref['t'], ref['z'], label="z")
-    # # plt.legend()
-    # # plt.savefig('fig2/pos')
-
-    # t = ref['t']
-    # x = ref['x']
-    # dt = t[1] - t[0]
-    # dx = np.diff(x)/dt
-    
-
-    # plt.figure()
-    # plt.plot(ref['t'], ref['vx'], label="vx")
-    # plt.plot(t[1:],dx,label="approximation")
-    # # plt.plot(ref['t'], ref['vy'], label="vy")
-    # # plt.plot(ref['t'], ref['vz'], label="vz")
-    # plt.legend()
-    # plt.savefig('fig2/vel')
-
-    # dxx = np.diff(np.diff(x))/(dt**2)
-    
-    # plt.figure()
-    # plt.plot(ref['t'], ref['ax'], label="ax")
-    # plt.plot(t[2:], dxx, label="ax")
-    
-    # # plt.plot(ref['t'], ref['ay'], label="ay")
-    # # plt.plot(ref['t'], ref['az'], label="az")
-    # plt.legend()
-    # plt.savefig('fig2/acc')
-
-
-    return ref
-
-
 def traj_3():
     num_coords = 7
     n_legs = num_coords-1 # Number of coordinates - 1
@@ -717,10 +638,3 @@ def traj_3():
     ref = planner2(bc, cost, n_legs, poly_deg, k_time, T_legs)
 
     return ref
-
-def plot_trajectory3D(traj, axis):
-    axis.plot(traj["x"], traj["y"], traj["z"])
-    axis.set_xlabel('x, m', labelpad=10)
-    axis.set_ylabel('y, m', labelpad=12)
-    axis.set_zlabel('z, m', rotation=90, labelpad=8)
-    axis.set_title('Reference Trajectory')

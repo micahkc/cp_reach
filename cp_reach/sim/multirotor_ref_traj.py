@@ -2,8 +2,6 @@
 # Multirotor Reference Trajectory
 
 import casadi as ca
-import os
-import pathlib
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Symbols and Parameters

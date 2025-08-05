@@ -1,10 +1,7 @@
 import casadi as ca
-#from pyecca.lie import so3, se3
-
 from cp_reach.lie.util import series_dict
 from cp_reach.lie.matrix_lie_group import MatrixLieGroup
 from cp_reach.lie.so3 import Quat, Euler, Mrp, Dcm
-# import so3
 
 
 class _SE3(MatrixLieGroup):
@@ -175,96 +172,6 @@ class _SE3(MatrixLieGroup):
         horz2 = ca.horzcat(wSkew, uInv)
         lastRow2 = ca.SX([0, 0, 0, 0]).T
         return ca.vertcat(horz2, lastRow2)
-
-    # def diff_correction_inv(self, v):  # U_inv of se3 input vee operator
-    #     # v = se3.vee(v)  #This only applies if v is inputed from Lie Group format
-
-    #     v_so3 = v[
-    #         3:6
-    #     ]  # grab only rotation terms for so3 uses ## changed to match NASAULI paper order of vee v[3:6]
-    #     X_so3 = so3.wedge(v_so3)  # wedge operator for so3
-    #     theta = ca.norm_2(
-    #         so3.vee(X_so3)
-    #     )  # theta term using norm for sqrt(theta1**2+theta2**2+theta3**2)
-
-    #     A = series_dict["sin(x)/x"]
-    #     B = series_dict["(1 - cos(x))/x^2"]
-    #     C = series_dict["(x - sin(x))/x^3"]
-
-    #     ad = se3.ad_matrix(v)
-    #     I = ca.SX_eye(6)
-    #     u_inv = I + c2 * ad + c3 * se3.matmul(ad, ad)
-    #     return u_inv
-
-        # u_inv = ca.SX(6, 6)
-        # u1 = c2*(-v[4]**2 - v[5]**2) + 1
-        # u2 = -c1*v[5] + c2*v[3]*v[4]
-        # u3 = c1 * v[4] + c2 * v[3]*v[5]
-        # u4 = c2 * (-2*v[4]*v[1]-2*v[5]*v[2])
-        # u5 = -c1 * v[2] + c2*(v[4]*v[0]+v[3]*v[1])
-        # u6 = c1 * v[1] + c2*(v[3]*v[2]+v[5]*v[0])
-        # uInvR1 = ca.vertcat(u1,u2,u3,u4,u5,u6)
-
-        # u1 = c1 * v[5] + c2 * v[3] * v[4]
-        # u2 = c2 *(-v[3]**2 - v[5]**2)+1
-        # u3 = -c1*v[3] + c2 * v[4]*v[5]
-        # u4 = c1 * v[2] + c2 * (v[3]*v[1]+v[4]*v[0])
-        # u5 = c2* (-2*v[3] * v[0] -2*v[5]*v[2])
-        # u6 = -c1 * v[0] + c2 * (v[4]*v[2] + v[5] *v[1])
-        # uInvR2 = ca.vertcat(u1,u2,u3,u4,u5,u6)
-
-        # u1 = -c1 * v[4] + c2 * v[3] * v[5]
-        # u2 = c1 * v[3] + c2 * v[4] * v[5]
-        # u3 = c1 * (-v[3] **2  - v[4]**2) +1
-        # u4 = -c1 * v[1] + c2 * (v[3]*v[2] + v[5]*v[0])
-        # u5 = c1 * v[0] + c2 * (v[4]*v[2] + v[5] *v[1])
-        # u6 = c2 * (-2*v[3]*v[0] - 2*v[4] *v[1])
-        # uInvR3 = ca.vertcat(u1,u2,u3,u4,u5,u6)
-
-        # u1 = 0
-        # u2 = 0
-        # u3 = 0
-        # u4 = c2 * (- v[4]**2 - v[5]**2) +1
-        # u5 = -c1*v[5] + c2*v[3]*v[4]
-        # u6 = c1 * v[4] + c2 * v[3] * v[5]
-        # uInvR4 = ca.vertcat(u1,u2,u3,u4,u5,u6)
-
-        # u1 = 0
-        # u2 = 0
-        # u3 = 0
-        # u4 = c1 * v[5] + c2 * v[3] * v[4]
-        # u5 = c2 * (-v[3]**2 - v[5]**2) +1
-        # u6 = -c1 * v[3] + c2 * v[4] *v[5]
-        # uInvR5 = ca.vertcat(u1,u2,u3,u4,u5,u6)
-
-        # u1 = 0
-        # u2 = 0
-        # u3 = 0
-        # u4 = -c1 * v[4] + c2 * v[3] * v[5]
-        # u5 = c1 * v[3] + c2 * v[4] * v[5]
-        # u6 = c2 * (-v[3] **2 - v[4]**2)+1
-        # uInvR6 = ca.vertcat(u1,u2,u3,u4,u5,u6)
-
-        # u_inv = ca.transpose(ca.horzcat(uInvR1,uInvR2,uInvR3,uInvR4, uInvR5, uInvR6))
-        # return u_inv
-
-    # verify this with series solution
-
-    # https://github.com/jgoppert/pyecca/blob/master/pyecce/estimation/attitude/algorithms/mrp.py
-    # Use this to try to get casadi to draw a plot for this
-    # line 112-116 help for drawing plots
-
-    # https://github.com/jgoppert/pyecca/blob/master/pyecca/estimation/attitude/algorithms/common.py
-    # This import to import needed casadi command
-
-    # New notes (Oct 18 22)
-    ## sympy.cse(f) to find common self expression using sympy to clean up the casadi plot
-    # cse_def, cse_expr = sympy.cse(f)
-
-    # Oct 25 Update
-    # work on updating SE2 umatrix to casadi
-    # get SE2 U matrix
-    # u matrix can be found through casadi using inverse function for casadi
 
 
 SE3Dcm = _SE3(Dcm)

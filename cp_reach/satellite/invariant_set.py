@@ -4,19 +4,18 @@ import numpy as np
 import cp_reach.physics.angular_acceleration  as angular_acceleration
 import cp_reach.physics.rigid_body as rigid_body
 
-
-def solve(accel_dist, ang_vel_dist, ref, dynamics_sol=None, kinematics_sol=None):
+def solve(accel_dist, ang_accel_dist, ref, dynamics_sol=None, kinematics_sol=None):
     """
     Compute reachable sets for a satellite under bounded disturbances in translational acceleration
-    and angular velocity. This function over-approximates the reachable sets in both angular velocity
+    and angular acceleration. This function over-approximates the reachable sets in both angular velocity
     space and SE(3) (position + orientation) space using Lyapunov-based ellipsoidal bounds.
 
     Parameters:
         accel_dist (float):
             Upper bound on translational acceleration disturbance (m/s²), e.g., from wind or thrust noise.
         
-        ang_vel_dist (float):
-            Upper bound on angular velocity disturbance (rad/s), e.g., from torque uncertainty.
+        ang_accel_dist (float):
+            Upper bound on angular acceleration disturbance (rad/s^2), e.g., from torque uncertainty.
 
         ref (dict):
             Dictionary containing reference trajectories with keys:
@@ -86,7 +85,7 @@ def solve(accel_dist, ang_vel_dist, ref, dynamics_sol=None, kinematics_sol=None)
 
     mu1 = dynamics_sol['mu1']
     P_dyn = dynamics_sol['P']
-    val_dyn = mu1 * ang_vel_dist**2
+    val_dyn = mu1 * ang_accel_dist**2
     P_dyn_scaled = P_dyn / val_dyn
     r = np.sqrt(val_dyn)
 
