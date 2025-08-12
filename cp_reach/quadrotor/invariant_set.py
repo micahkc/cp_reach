@@ -69,6 +69,7 @@ def solve(accel_dist, ang_accel_dist, ref, dynamics_sol=None, kinematics_sol=Non
 
     # === Dynamics-level Lyapunov (angular motion) ===
     if dynamics_sol is None:
+        print(omega1_max, omega2_max, omega3_max)
         dynamics_sol = angular_acceleration.solve_inv_set(
             omega1_max, omega2_max, omega3_max
         )

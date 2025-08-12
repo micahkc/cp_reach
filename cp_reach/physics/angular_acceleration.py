@@ -115,9 +115,13 @@ def solve_inv_set(omega1_range, omega2_range, omega3_range, verbosity=0):
         disp=(verbosity > 0)
     )
 
+    print(alpha_opt)
+    print(A_list)
+    print(B)
     sol = omegaLMIs(alpha_opt, A_list, B)
 
     if sol['prob'].status != 'optimal':
+        print(sol)
         raise RuntimeError("Optimization failed")
 
     if verbosity > 0:
