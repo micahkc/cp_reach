@@ -62,7 +62,7 @@ def solve(vel_dist, accel_dist, ang_accel_dist, ref, dynamics_sol=None, kinemati
     if ref is None:
         ax_max = [0]
         ay_max = [0]
-        az_max = [9.8]  # gravity compensation
+        az_max = [0]  # gravity compensation
 
         omega1_max = [0]
         omega2_max = [0]
@@ -77,13 +77,9 @@ def solve(vel_dist, accel_dist, ang_accel_dist, ref, dynamics_sol=None, kinemati
         omega2_max = [np.max(np.abs(ref['omega2']))]
         omega3_max = [np.max(np.abs(ref['omega3']))]
 
-    # print(f'omega: {omega1_max, omega2_max, omega3_max}')
-    # print(f'acc: {ax_max, ay_max, az_max}')
-
-
     # === Dynamics-level Lyapunov (angular motion) ===
     if dynamics_sol is None:
-        
+        print(omega1_max, omega2_max, omega3_max)
         dynamics_sol = angular_acceleration.solve_inv_set(
             omega1_max, omega2_max, omega3_max
         )

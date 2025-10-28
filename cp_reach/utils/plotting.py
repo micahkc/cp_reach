@@ -63,7 +63,7 @@ def rotate_point(points, angle):
     ])
     return R @ points
 
-def flowpipes(ref, step, accel_dist, omega_dist, sol, axis):
+def flowpipes(ref, step, vel_dist, accel_dist, omega_dist, sol, axis):
     """
     Compute flowpipes for a nonlinear system on SE(3) using LMI-based invariant set.
     Assumes:
@@ -76,7 +76,7 @@ def flowpipes(ref, step, accel_dist, omega_dist, sol, axis):
         step        : step size
         accel_dist          : linear disturbance bound (scalar or vector)
         omega_dist  : angular velocity disturbance bound (scalar or vector)
-        sol         : dict from SE23LMIs (contains 'P', 'mu2', 'mu3')
+        sol         : dict from SE23LMIs (contains 'P', 'mu1', 'mu2', 'mu3')
         axis        : 'xy' or 'xz' — determines 2D projection
 
     Returns:
@@ -97,9 +97,9 @@ def flowpipes(ref, step, accel_dist, omega_dist, sol, axis):
         raise ValueError("axis must be 'xy' or 'xz'.")
 
     # Compute steady-state bound for V(∞)
-    mu2, mu3 = sol['mu2'], sol['mu3']
+    mu1, mu2, mu3 = sol['mu1'], sol['mu2'], sol['mu3']
     P = sol['P']
-    val = mu2 * (np.linalg.norm(accel_dist)**2) + mu3 * (np.linalg.norm(omega_dist)**2) + 0.01
+    val = mu1 * (np.linalg.norm(vel_dist)**2) + mu2 * (np.linalg.norm(accel_dist)**2) + mu3 * (np.linalg.norm(omega_dist)**2) + 0.01
 
     # Project Lyapunov ellipsoid into translational and rotational subspaces
     points, _ = project_ellipsoid_subspace(P / val, [0, 1, 2])

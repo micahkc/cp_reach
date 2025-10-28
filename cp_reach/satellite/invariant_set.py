@@ -1,12 +1,13 @@
 
 import numpy as np
-
+import casadi as ca
 import cp_reach.physics.angular_acceleration  as angular_acceleration
 import cp_reach.physics.rigid_body as rigid_body
+from cyecca.lie.group_se23 import se23, SE23Quat  # or SE23Mrp
 
-def solve(accel_dist, ang_accel_dist, ref, dynamics_sol=None, kinematics_sol=None):
+def solve(ang_vel_dist, ref_acceleration, pid_values, dynamics_sol=None, kinematics_sol=None, num_points= 720):
     """
-    Compute reachable sets for a satellite under bounded disturbances in translational acceleration
+    Compute over approximation of reachable sets for a satellite under bounded disturbances in translational acceleration
     and angular acceleration. This function over-approximates the reachable sets in both angular velocity
     space and SE(3) (position + orientation) space using Lyapunov-based ellipsoidal bounds.
 
@@ -55,73 +56,55 @@ def solve(accel_dist, ang_accel_dist, ref, dynamics_sol=None, kinematics_sol=Non
         kinematics_sol    : dict
             Solution to the Lyapunov LMI for SE(3) kinematics (contains P, mu2, mu3, etc.).
     """
-
-    # Need to update this for reference trajectory
-
-    # # Extract peak disturbances from reference
-    # ax_max = [np.max(np.abs(ref['ax']))]
-    # ay_max = [np.max(np.abs(ref['ay']))]
-    # az_max = [np.max(9.8 - np.min(ref['az']))]  # gravity compensation
-
-    # omega1_max = [np.max(np.abs(ref['omega1']))]
-    # omega2_max = [np.max(np.abs(ref['omega2']))]
-    # omega3_max = [np.max(np.abs(ref['omega3']))]
-
-    # Extract peak disturbances from reference
-    value = [1]
-    ax_max = value
-    ay_max = value
-    az_max = value
-
-    omega1_max = value
-    omega2_max = value
-    omega3_max = value
+    # PID values:
+    kp, kd, kpq, kdq = pid_values
 
     # === Dynamics-level Lyapunov (angular motion) ===
+    # Puts upper bound on reachable set of omega (angular velocity) error.
     if dynamics_sol is None:
-        dynamics_sol = angular_acceleration.solve_inv_set(
-            omega1_max, omega2_max, omega3_max
-        )
+        dynamics_sol = angular_acceleration.solve_inv_set(kdq, verbosity=0)
 
+    # Get bounds from inner loop solution
     mu1 = dynamics_sol['mu1']
     P_dyn = dynamics_sol['P']
-    val_dyn = mu1 * ang_accel_dist**2
+    val_dyn = mu1 * ang_vel_dist**2
     P_dyn_scaled = P_dyn / val_dyn
-    r = np.sqrt(val_dyn)
-
-    # Transform P to unit ball to find worst-case angular velocity
-    eigvals, eigvecs = np.linalg.eig(P_dyn)
-    R = np.real(eigvecs @ np.diag(1 / np.sqrt(eigvals)))
+    
     ang_vel_points = angular_acceleration.obtain_points(P_dyn_scaled)
     lower_bound_omega = np.min(ang_vel_points, axis=1)
     upper_bound_omega = np.max(ang_vel_points, axis=1)
 
-    # Infinity norm-based overapproximation of angular velocity
+    # Infinity norm-based overapproximation of angular velocity error.
+    # Transform P to unit ball to find worst-case angular velocity error.
+    r = np.sqrt(val_dyn)
+    eigvals, eigvecs = np.linalg.eig(P_dyn)
+    R = np.real(eigvecs @ np.diag(1 / np.sqrt(eigvals)))
     omega_dist = r * np.max(np.linalg.norm(R, axis=1))
 
-    # === Kinematics-level Lyapunov (SE(3)) ===
-    if kinematics_sol is None:
-        kinematics_sol = rigid_body.solve_se23_invariant_set(
-            ax_max, ay_max, az_max, omega1_max, omega2_max, omega3_max, mode=1
-        )
 
-    mu2 = kinematics_sol['mu2']
-    mu3 = kinematics_sol['mu3']
+
+    
+    # === Kinematics-level Lyapunov (SE(3)) ===
+    # Puts upper bound on position, velocity, and attitude error.
+    gravity_err = 0
+
+    if kinematics_sol is None:
+        kinematics_sol = rigid_body.solve_se23_invariant_set_log_control(ref_acceleration, kp, kd, kpq, omega_dist, gravity_err)
+
+    mu1 = kinematics_sol['mu1'] # ang acceleration disturbance
+    mu2 = kinematics_sol['mu2'] # gravity disturbance
     P_kin = kinematics_sol['P']
-    val_kin = mu2 * accel_dist**2 + mu3 * omega_dist**2
+    val_kin = mu1 * omega_dist**2 + mu2 * gravity_err**2
     P_kin_scaled = P_kin / val_kin
 
-    # Project ellipsoid from se(2,3) Lie algebra
-    translation_pts, _ = rigid_body.project_ellipsoid_subspace(P_kin_scaled, [0, 1, 2])
-    velocity_pts, _                = rigid_body.project_ellipsoid_subspace(P_kin_scaled, [3, 4, 5])  # unused but consistent
-    rotation_pts, _     = rigid_body.project_ellipsoid_subspace(P_kin_scaled, [6, 7, 8])
 
-    # Map to SE(3) using exponential map
-    inv_points = rigid_body.exp_map(translation_pts, rotation_pts)
+    # Go through points around ellipsoid and take exponential map
+    xi_points = rigid_body.sample_ellipsoid_boundary(P_kin_scaled, n=num_points)  # e.g., 20 per 2-plane
+    eta_points = rigid_body.expmap(xi_points)
 
-    # Axis-aligned bounding box in SE(3)
-    lower_bound = np.min(inv_points, axis=1)
-    upper_bound = np.max(inv_points, axis=1)
+    lower_bound = np.min(eta_points, axis=1)
+    upper_bound = np.max(eta_points, axis=1)
+
 
     return (
         ang_vel_points,
@@ -129,7 +112,7 @@ def solve(accel_dist, ang_accel_dist, ref, dynamics_sol=None, kinematics_sol=Non
         upper_bound_omega,
         omega_dist,
         dynamics_sol,
-        inv_points,
+        eta_points,
         lower_bound,
         upper_bound,
         kinematics_sol,

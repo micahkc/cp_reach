@@ -52,6 +52,49 @@ class _SE23(MatrixLieGroup):
         return adC
 
 
+    def _hat3_casadi(self,x, y, z):
+        """3x3 skew matrix [x,y,z]_x as CasADi SX."""
+        return ca.SX([[   0, -z,  y],
+                    [   z,  0, -x],
+                    [  -y,  x,  0]])
+
+    def ad_matrix_pvq_casadi(self, v):
+        """
+        Adjoint matrix ad_{nbar} for SE_2(3) in pvq order.
+
+        Parameters
+        ----------
+        v : iterable of length 9
+            vee coordinates in pvq order:
+            [p_x, p_y, p_z,  v_x, v_y, v_z,  q_x, q_y, q_z]
+
+        Returns
+        -------
+        ad : casadi.SX (9x9)
+            3x3 block structure: [[Q, 0, 0],
+                                [V, Q, 0],
+                                [P, 0, Q]]
+        """
+        px, py, pz, vx, vy, vz, qx, qy, qz = v
+
+        P = self._hat3_casadi(px, py, pz)   # [p]_x
+        V = self._hat3_casadi(vx, vy, vz)   # [v]_x
+        Q = self._hat3_casadi(qx, qy, qz)   # [q]_x
+
+        ad = ca.SX.zeros(9, 9)
+        # top-left: Q
+        ad[0:3, 0:3] = Q
+        # middle-left: V ; middle-middle: Q
+        ad[3:6, 0:3] = V
+        ad[3:6, 3:6] = Q
+        # bottom-left: P ; bottom-right: Q
+        ad[6:9, 0:3] = P
+        ad[6:9, 6:9] = Q
+        # all other blocks are zero
+        return ad
+
+
+
     def ad_matrix(self, v):
         """
         takes 9x1 lie algebra

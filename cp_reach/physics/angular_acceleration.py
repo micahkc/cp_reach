@@ -4,21 +4,21 @@ import control
 import itertools
 import scipy
 
-def omega_solve_control_gain(omega1, omega2, omega3):
-    # A = np.zeros((3,3))
-    A =  -np.array([[0, -omega3, omega2],
-                    [omega3, 0, -omega1],
-                    [-omega2, omega1, 0]])
-    B = np.array([[1, 0, 0],
-                  [0, 1, 0],
-                  [0, 0, 1]]) # control alpha1,2,3
-    Q = 10*np.eye(3)  # penalize state
-    R = 1*np.eye(3)  # penalize input
-    K, _, _ = control.lqr(A, B, Q, R) 
-    #print('K', K)
-    K = -K # rescale K, set negative feedback sign
-    BK = B@K
-    return B, K, BK , A+B@K
+# def omega_solve_control_gain(omega1, omega2, omega3):
+#     # A = np.zeros((3,3))
+#     A =  -np.array([[0, -omega3, omega2],
+#                     [omega3, 0, -omega1],
+#                     [-omega2, omega1, 0]])
+#     B = np.array([[1, 0, 0],
+#                   [0, 1, 0],
+#                   [0, 0, 1]]) # control alpha1,2,3
+#     Q = 10*np.eye(3)  # penalize state
+#     R = 1*np.eye(3)  # penalize input
+#     K, _, _ = control.lqr(A, B, Q, R) 
+#     #print('K', K)
+#     K = -K # rescale K, set negative feedback sign
+#     BK = B@K
+#     return B, K, BK , A+B@K
 
 def omegaLMIs(alpha, A_list, B, verbosity=0):
     """
@@ -63,6 +63,7 @@ def omegaLMIs(alpha, A_list, B, verbosity=0):
         prob.solve(solver=cp.CVXOPT, verbose=(verbosity > 0))
         cost = mu1.value
         P_value = P.value
+
     except Exception as e:
         print(f"Exception during CVXPY solve: {e}")
         cost = np.inf
@@ -78,29 +79,17 @@ def omegaLMIs(alpha, A_list, B, verbosity=0):
 
 
 # Force-moment LMI
-def solve_inv_set(omega1_range, omega2_range, omega3_range, verbosity=0):
-    """
-    Solves for lyapunov matrix and disturbance bound over a grid of angular velocities.
-    
-    Parameters:
-        omega1_range, omega2_range, omega3_range : iterables of angular velocities
-        verbosity : int, level of logging (0 = silent)
-    
-    Returns:
-        sol : dict containing lyapunov solution, including 'P', 'mu1', etc.
-    """
-    # Generate grid of all omega combinations
-    omega_grid = np.array(list(itertools.product(omega1_range, omega2_range, omega3_range)))
-
+def solve_inv_set(Kdq, verbosity=0):
     A_list = []
     eig_list = []
 
-    for omega in omega_grid:
-        w1, w2, w3 = omega
-        B, K, BK, A = omega_solve_control_gain(w1, w2, w3)
+    K = Kdq*np.eye(3)
+    B = np.eye(3)
+    A_prime = -B@K
+    B_prime = -B@K
 
-        A_list.append(A)
-        eig_list.append(np.linalg.eigvals(A))
+    A_list.append(A_prime)
+    eig_list.append(np.linalg.eigvals(A_prime))
 
     # Compute conservative upper bound on alpha for LMI line search
     alpha_upper = -np.real(np.max(eig_list))  # most unstable eigenvalue (smallest real part)
@@ -110,15 +99,13 @@ def solve_inv_set(omega1_range, omega2_range, omega3_range, verbosity=0):
 
     # Minimize cost over alpha in the range (very small, conservative upper bound)
     alpha_opt = scipy.optimize.fminbound(
-        lambda alpha: omegaLMIs(alpha, A_list, B, verbosity=verbosity)['cost'],
+        lambda alpha: omegaLMIs(alpha, A_list, B_prime, verbosity=verbosity)['cost'],
         x1=1e-5, x2=alpha_upper,
         disp=(verbosity > 0)
     )
 
-    print(alpha_opt)
-    print(A_list)
-    print(B)
-    sol = omegaLMIs(alpha_opt, A_list, B)
+    sol = omegaLMIs(alpha_opt, A_list, B_prime)
+    
 
     if sol['prob'].status != 'optimal':
         print(sol)
@@ -126,7 +113,6 @@ def solve_inv_set(omega1_range, omega2_range, omega3_range, verbosity=0):
 
     if verbosity > 0:
         print(f"Alpha: {alpha_opt:.4f}, mu1: {sol['mu1']}, Cost: {sol['cost']:.4e}")
-
     return sol
 
 def obtain_points(M, n=30):
