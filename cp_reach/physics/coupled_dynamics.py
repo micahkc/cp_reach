@@ -27,7 +27,7 @@ def SE23LMIs(alpha, A_list, B1, B2, w1_max, w2_max, verbosity=0, solver=None):
     import cvxpy as cp
     import numpy as np
 
-    n = 9
+    n = A_list[0].shape[1]
     m1 = B1.shape[1]
     m2 = B2.shape[1]
     I_n  = np.eye(n)
@@ -87,101 +87,7 @@ def SE23LMIs(alpha, A_list, B1, B2, w1_max, w2_max, verbosity=0, solver=None):
         }
 
 
-def solve_se23_invariant_set(ax_range, ay_range, az_range,
-                             omega1_range, omega2_range, omega3_range,
-                             mode, verbosity=0):
-    """
-    Computes a common Lyapunov matrix P for the SE(2,3) system
-    across a grid of linear acceleration and angular velocity values.
-
-    For each point in the grid, the system is linearized and closed-loop dynamics
-    are formed using LQR feedback. A Lyapunov LMI is then solved to find a
-    symmetric matrix P that satisfies:
-
-        Aᵢᵀ P + P Aᵢ + α P + structured Schur terms ≼ 0
-
-    for all linearized systems Aᵢ in the grid.
-
-    Parameters:
-        ax_range, ay_range, az_range             : iterable
-            Linear acceleration values (m/s²) to evaluate
-        omega1_range, omega2_range, omega3_range : iterable
-            Angular velocity values (rad/s) to evaluate
-        mode      : int
-            System type:
-              - 0: quadrotor model (thrust + torque)
-              - 1: satellite model (full force + torque)
-        verbosity : int
-            If > 0, prints progress and solver output
-
-    Returns:
-        sol : dict
-            {
-              'P'     : Lyapunov matrix (9×9 ndarray),
-              'mu1'   : margin in position subspace,
-              'mu2'   : margin in velocity subspace,
-              'mu3'   : margin in orientation subspace,
-              'cost'  : scalar objective (mu1 + mu2 + mu3),
-              'alpha' : stability decay rate,
-              'prob'  : cvxpy Problem instance
-            }
-    """
-
-
-    A_matrices = []   # Linearized closed-loop dynamics
-    eigenvalues = []  # For estimating stability margin
-
-    # Step 2: Define nominal state x₀ for control synthesis
-    if mode == 0:
-        # Quadrotor: hover at az = 9.8 m/s²
-        x0 = [0, 0, 0, 0, 0, 9.8, 0, 0, 0]
-    elif mode == 1:
-        # Satellite: rest state
-        x0 = [0] * 9
-    else:
-        raise ValueError("Invalid mode: use 0 for drone or 1 for satellite")
-    
-    # Use fixed LQR controller designed at x₀
-    _, K, BK, _ = se23_solve_control(x0, mode)
-
-    # Step 3: Loop over grid points and collect linearized dynamics
-    for nu in grid:
-        omega1, omega2, omega3, ax, ay, az = nu
-
-        # Linearize drift at current (ω, a) using SE(2,3) Lie algebra
-        ad = SE23Dcm.ad_matrix(np.array([0, 0, 0, ax, ay, az, omega1, omega2, omega3]))
-        A = -ca.DM(ad + SE23Dcm.adC_matrix()) + BK
-
-        A_matrices.append(np.array(A))
-        eigenvalues.append(np.linalg.eigvals(A))
-
-    # Step 4: Estimate maximum real part of eigenvalues for α search
-    if verbosity > 0:
-        print("Estimating decay rate α from closed-loop eigenvalues...")
-
-    alpha_upper = -np.real(np.max(eigenvalues))  # Most unstable real eigenvalue
-
-    # Step 5: Line search to minimize Lyapunov cost
-    alpha_opt = scipy.optimize.fminbound(
-        lambda alpha: SE23LMIs(alpha, A_matrices)['cost'],
-        x1=1e-5,
-        x2=alpha_upper,
-        disp=(verbosity > 0)
-    )
-
-    # Step 6: Solve LMI at optimal α
-    sol = SE23LMIs(alpha_opt, A_matrices)
-
-    if sol['prob'].status != 'optimal':
-        raise RuntimeError(f"Lyapunov LMI failed at α = {alpha_opt:.4f}")
-
-    if verbosity > 0:
-        print(f"[✓] Lyapunov matrix found:")
-        print(f"    α = {alpha_opt:.4f}, μ₁ = {sol['mu1']:.4e}, total cost = {sol['cost']:.4e}")
-
-    return sol
-
-def solve_se23_invariant_set_log_control(ref_acc, Kp, Kd, Kpq, omega_dist, gravity_err):
+def solve_se23_invariant_set(ref_acc, Kp, Kd, Kpq, Kdq, omega_dist, gravity_err):
     """
     Computes a common Lyapunov matrix P for the SE(2,3) system
     across a grid of linear acceleration and angular velocity values.
@@ -224,6 +130,9 @@ def solve_se23_invariant_set_log_control(ref_acc, Kp, Kd, Kpq, omega_dist, gravi
         [1, 0, 0, 0, 0, 0],
         [0, 1, 0, 0, 0, 0],
         [0, 0, 1, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
         [0, 0, 0, 1, 0, 0],
         [0, 0, 0, 0, 1, 0],
         [0, 0, 0, 0, 0, 1],
@@ -231,13 +140,14 @@ def solve_se23_invariant_set_log_control(ref_acc, Kp, Kd, Kpq, omega_dist, gravi
 
     # Gain matrix K = np.array([Kp Kd 0
     #                           0 0  Kp])
+    print(Kp,Kd,Kpq,Kdq)
     K = np.array([
-        [Kp,0,0,Kd,0,0,0,0,0],
-        [0,Kp,0,0,Kd,0,0,0,0],
-        [0,0,Kp,0,0,Kd,0,0,0],
-        [0,0,0,0,0,0,Kpq,0,0],
-        [0,0,0,0,0,0,0,Kpq,0],
-        [0,0,0,0,0,0,0,0,Kpq]])
+        [Kp,0,0,Kd,0,0,0,0,0,0,0,0],
+        [0,Kp,0,0,Kd,0,0,0,0,0,0,0],
+        [0,0,Kp,0,0,Kd,0,0,0,0,0,0],
+        [0,0,0,0,0,0,Kpq,0,0,Kdq,0,0],
+        [0,0,0,0,0,0,0,Kpq,0,0,Kdq,0],
+        [0,0,0,0,0,0,0,0,Kpq,0,0,Kdq]])
     
     # These are how disturbances enter the system (angular velocity (B1) and gravity (B2))
     B1 = np.array([
@@ -247,9 +157,12 @@ def solve_se23_invariant_set_log_control(ref_acc, Kp, Kd, Kpq, omega_dist, gravi
         [0,0,0],
         [0,0,0],
         [0,0,0],
-        [1,0,0],
-        [0,1,0],
-        [0,0,1],
+        [0,0,0],
+        [0,0,0],
+        [0,0,0],
+        [Kdq,0,0],
+        [0,Kdq,0],
+        [0,0,Kdq],
     ])
 
     B2 = np.array([
@@ -262,20 +175,34 @@ def solve_se23_invariant_set_log_control(ref_acc, Kp, Kd, Kpq, omega_dist, gravi
         [0,0,0],
         [0,0,0],
         [0,0,0],
+        [0,0,0],
+        [0,0,0],
+        [0,0,0]
     ])
     
 
 
-    # We want this in the form x dot = Ax + B2 dist1 + B dist2
-    # A = -ad_nbar + C - B0K
+    # We want this in the form x dot = (A+B0)x + B1 dist1 + B2 dist2
+    # top left of A is: -ad_nbar + C - B0K
     vec = np.array([0, 0, 0, ref_acc[0], ref_acc[1], ref_acc[2], 0, 0, 0])
-    ad = SE23Dcm.ad_matrix(vec)
-    A = -ca.DM(ad - SE23Dcm.adC_matrix()) - B0@K
+    ad = ca.DM(SE23Dcm.ad_matrix(vec)).full()
+
+    adC = np.zeros((9,9))
+    adC[0, 3] = 1
+    adC[1, 4] = 1
+    adC[2, 5] = 1
+
+    A_top_left = -ad + adC
+
+    A = np.zeros((12,12))
+    A[:9, :9] = A_top_left
+    A[6:9,9:] = np.eye(3)
+
+    A_prime = ca.DM(A - B0@K)
 
 
-    A_matrices.append(np.array(A))
-    eigenvalues.append(np.linalg.eigvals(A))
-    print(eigenvalues)
+    A_matrices.append(np.array(A_prime))
+    eigenvalues.append(np.linalg.eigvals(A_prime))
 
 
     alpha_upper = -np.real(np.max(eigenvalues))  # Most unstable real eigenvalue
@@ -283,13 +210,13 @@ def solve_se23_invariant_set_log_control(ref_acc, Kp, Kd, Kpq, omega_dist, gravi
 
     # Line search to find alpha that minimizes cost (omega_dist mu1**2 + gravity_err mu2**2)
     alpha_opt = scipy.optimize.fminbound(
-        lambda alpha: SE23LMIs2(alpha, A_matrices, B1, B2, omega_dist, gravity_err)['cost'],
+        lambda alpha: SE23LMIs(alpha, A_matrices, B1, B2, omega_dist, gravity_err)['cost'],
         x1=1e-5,
         x2=alpha_upper
     )
 
     # Solve LMI at optimal alpha
-    sol = SE23LMIs2(alpha_opt, A_matrices, B1, B2, omega_dist, gravity_err)
+    sol = SE23LMIs(alpha_opt, A_matrices, B1, B2, omega_dist, gravity_err)
     
 
     if sol['prob'].status != 'optimal':
@@ -299,57 +226,118 @@ def solve_se23_invariant_set_log_control(ref_acc, Kp, Kd, Kpq, omega_dist, gravi
     return sol
 
 
+import numpy as np
 
-
-def project_ellipsoid_subspace(M, indices):
+def project_ellipsoid_matrix(M, indices):
     """
-    Project a high-dimensional ellipsoid xᵀMx = 1 onto a 3D subspace.
+    Compute the projected ellipsoid matrix onto the coordinate subspace 'indices'.
+    If E = {x | x^T M x = 1} in R^n and we keep coordinates y = x[indices],
+    then the projection is E_sub = {y | y^T M_sub y = 1} with
 
-    Parameters:
-        P             : (n x n) ndarray, Lyapunov matrix
-        indices       : list of 3 ints, indices to project onto (e.g., [0,1,2] for position)
-        val           : float, scalar value (e.g., V(t)) to scale the ellipsoid
-        return_matrix : bool, if True returns (R, radii) instead of points
+        M_sub = D - C A^{-1} B,
 
-    Returns:
-        points : (3, N) ndarray of ellipsoid surface points
-        val    : float, same as input (for convenience)
+    where M is blocked as:
+        [A  B]
+        [C  D]
+    after reordering coordinates into (drop, keep).
+
+    Parameters
+    ----------
+    M : (n,n) ndarray, symmetric positive definite
+    indices : list[int], coordinates to keep (length k)
+
+    Returns
+    -------
+    M_sub : (k,k) ndarray
     """
+    M = np.asarray(M)
+    if M.ndim != 2 or M.shape[0] != M.shape[1]:
+        raise ValueError("M must be square.")
+    n = M.shape[0]
+    idx_keep = np.asarray(indices, dtype=int)
+    if np.any(idx_keep < 0) or np.any(idx_keep >= n):
+        raise ValueError("indices out of range.")
+    k = idx_keep.size
 
-    # Step 2: Partition P
-    all_indices = np.arange(M.shape[0])
-    comp_indices = np.setdiff1d(all_indices, indices)
+    # Complement indices
+    all_idx = np.arange(n)
+    idx_drop = np.setdiff1d(all_idx, idx_keep, assume_unique=False)
 
-    # Extract blocks
-    A = M[np.ix_(comp_indices, comp_indices)]  
-    B = M[np.ix_(comp_indices, indices)]
-    C = M[np.ix_(indices, comp_indices)]
-    D = M[np.ix_(indices, indices)]
+    # Trivial cases
+    if idx_drop.size == 0:
+        # projecting onto all coordinates -> same matrix
+        return 0.5 * (M + M.T)
+    if k == 0:
+        raise ValueError("indices is empty.")
 
-    # Step 3: Schur complement to eliminate complementary variables
-    M_sub = D - C @ np.linalg.inv(A) @ B
+    # Block partition
+    A = M[np.ix_(idx_drop, idx_drop)]
+    B = M[np.ix_(idx_drop, idx_keep)]
+    C = M[np.ix_(idx_keep, idx_drop)]
+    D = M[np.ix_(idx_keep, idx_keep)]
 
-    # Step 4: Ellipsoid shape
-    evals, evects = np.linalg.eig(M_sub)
-    evals = np.real(evals)
-    evects = np.real(evects)
-    radii = 1.0 / np.sqrt(evals)
-    R = evects @ np.diag(radii)
+    # Schur complement using solve (more stable than inv), fallback to pinv
+    try:
+        X = np.linalg.solve(A, B)
+    except np.linalg.LinAlgError:
+        X = np.linalg.pinv(A) @ B
 
-    # Step 5: Sample sphere and map to ellipsoid
-    n = 30
-    u = np.linspace(0, 2 * np.pi, n)
-    v = np.linspace(0, np.pi, n)
-    uu, vv = np.meshgrid(u, v)
-    x = np.cos(uu) * np.sin(vv)
-    y = np.sin(uu) * np.sin(vv)
-    z = np.cos(vv)
-    sphere_points = np.stack([x.flatten(), y.flatten(), z.flatten()], axis=0)
+    M_sub = D - C @ X
+    # Symmetrize to clean numerical noise
+    M_sub = 0.5 * (M_sub + M_sub.T)
+    return M_sub
 
-    ellipsoid_points = R @ sphere_points
 
-    #xTM_subx = 1 defines the ellipoid from which ellipsoid_points are taken
-    return ellipsoid_points, M_sub
+def walk_ellipsoid_planes(M, n):
+    """
+    Deterministic boundary samples of {x in R^d | x^T M x = 1}.
+    Places evenly-angled points on every coordinate 2-plane (i,j),
+    then maps with x = M^{-1/2} u where u lies on the unit circle in that plane.
+
+    Parameters
+    ----------
+    M : (d,d) ndarray, symmetric positive definite
+    n : int, number of boundary samples desired
+
+    Returns
+    -------
+    X : (d, n) ndarray
+        Columns lie on the boundary x^T M x = 1
+    """
+    M = np.asarray(M)
+    if M.ndim != 2 or M.shape[0] != M.shape[1]:
+        raise ValueError("M must be square.")
+    d = M.shape[0]
+    if n <= 0:
+        return np.zeros((d, 0))
+
+    # Symmetrize and build M^{-1/2} via eigendecomposition
+    Ms = 0.5 * (M + M.T)
+    w, V = np.linalg.eigh(Ms)  # w > 0 for SPD
+    # Clamp tiny eigenvalues to avoid blowups
+    w = np.maximum(w, 1e-14)
+    Minvhalf = V @ (np.diag(1.0 / np.sqrt(w))) @ V.T
+
+    # Generate plane-wise unit-circle points
+    pairs = [(i, j) for i in range(d) for j in range(i + 1, d)]
+    P = len(pairs)                      # number of 2-planes
+    per_plane = (n + P - 1) // P        # ceil(n / P)
+
+    U_list = []
+    for (i, j) in pairs:
+        t = 2.0 * np.pi * np.arange(per_plane) / per_plane
+        Ui = np.zeros((d, per_plane))
+        Ui[i, :] = np.cos(t)
+        Ui[j, :] = np.sin(t)
+        U_list.append(Ui)
+        if len(U_list) * per_plane >= n:
+            break
+
+    U = np.concatenate(U_list, axis=1)[:, :n]   # (d, n), each column has ||u||=1
+    X = Minvhalf @ U                            # map to boundary of x^T M x = 1
+    return X
+
+
 
 def exp_map(points, rotation_points):
     """
@@ -428,6 +416,72 @@ def sample_ellipsoid_boundary(M, n):
     U = np.concatenate(U_list, axis=1)[:, :n]  # (9 x n) on the unit sphere in each plane
     X = np.linalg.solve(A, U)                  # map to xi: xi^T M xi = 1
     return X
+
+
+import numpy as np
+
+def sample_ellipsoid_surface(P, n, method="gaussian", seed=None):
+    """
+    Samples points on the boundary of {xi : xi^T P xi = 1} in R^d.
+
+    Parameters
+    ----------
+    P : (d,d) ndarray
+        Symmetric positive definite matrix.
+    n : int
+        Number of surface points to generate.
+    method : {"gaussian", "sobol"}
+        - "gaussian": normalize Gaussian vectors (exactly uniform on S^{d-1}).
+        - "sobol"   : low-discrepancy sphere mapping (needs scipy>=1.7).
+    seed : int or None
+        RNG seed for reproducibility (gaussian only).
+
+    Returns
+    -------
+    Xi : (d, n) ndarray
+        Columns lie on the ellipsoid boundary (xi^T P xi = 1).
+    """
+    if n <= 0:
+        return np.zeros((P.shape[0], 0))
+
+    # Symmetrize and build P^{-1/2} via eigendecomposition
+    Ps = 0.5 * (P + P.T)
+    w, V = np.linalg.eigh(Ps)
+    # Guard against tiny numerical negatives
+    w = np.maximum(w, 1e-14)
+    P_inv_half = V @ (np.diag(1.0 / np.sqrt(w))) @ V.T
+
+    d = P.shape[0]
+
+    # Unit-sphere samples S in R^d (columns have ||s||=1)
+    if method == "gaussian":
+        rng = np.random.default_rng(seed)
+        S = rng.standard_normal((d, n))
+        S /= np.linalg.norm(S, axis=0, keepdims=True)
+    elif method == "sobol":
+        try:
+            from scipy.stats import qmc, norm
+        except Exception as e:
+            raise RuntimeError("Sobol mode requires SciPy (scipy.stats.qmc, scipy.stats.norm).") from e
+        # Sobol in [0,1]^d, map to N(0,1) via inverse CDF, then normalize to the sphere
+        m = int(np.ceil(np.log2(n)))
+        U = qmc.Sobol(d=d, scramble=True, seed=seed).random_base2(m)[:n].T  # shape (d,n)
+        Z = norm.ppf(U)                          # Gaussianize
+        # Replace any infs from ppf(0/1) by redraw or clip
+        Z = np.where(np.isfinite(Z), Z, 0.0)
+        S = Z / np.linalg.norm(Z, axis=0, keepdims=True)
+    else:
+        raise ValueError("method must be 'gaussian' or 'sobol'.")
+
+    # Map sphere to ellipsoid boundary: Xi = P^{-1/2} S
+    Xi = P_inv_half @ S
+
+    # Optional tiny re-normalization onto boundary (fixes accumulated fp error)
+    # scale = 1.0 / np.sqrt(np.sum(Xi * (Ps @ Xi), axis=0))
+    # Xi *= scale
+
+    return Xi
+
 
 def expmap(X):
     n = X.shape[1]

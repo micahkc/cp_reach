@@ -124,34 +124,71 @@ class SatSimBurn(object):
         w_b = ca.vertcat(0, 0, 0)  # angular velocity in body frame
 
         # error from reference
-        eta = (X_b.inverse() * X_a).log().param
-        p_err = eta[0:3]
-        v_err = eta[3:6]
-        q_err = eta[6:9]
-
-
-        # outer attitude control loop
-        w_fb = -Kpq * q_err
-
-        # inner angular velocity control loop
         R_ab = R_a * R_b.inverse()
+        w_ab = w_a - R_ab@w_b
+        xi = ca.vertcat((X_b.inverse() * X_a).log().param, w_ab)
 
-        w_m = w_a + w_d  # measured angular velocity (with disturbance)
-        w_s = self.saturate(w_fb + R_ab @ w_b, -ang_saturation, ang_saturation)  # commanded angular velocity
+        p_err = xi[0:3]
+        v_err = xi[3:6]
+        q_err = xi[6:9]
 
-        w_e = w_m - w_s  # angular velocity error
 
-        T_fb = ca.cross(w_e, J@w_e) - Kdq*w_e
-        # T_fb = J @ (-ca.cross(w_e, R_ab @ w_b) - Kdq * w_e)  # no torque control for now
-        T_b = ca.vertcat(0, 0, 0)  # feedforward torque
-        T_a = T_b + T_fb  # total torque in body frame (feedback and feedforward)
+        B0 = ca.SX([
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [1, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 0, 0],
+            [0, 0, 0, 0, 1, 0],
+            [0, 0, 0, 0, 0, 1],
+        ])
 
-        # position PD controller
-        a_fb = (Kp * p_err + Kd * v_err) # simple PD control for position
+        K = ca.SX.zeros(6,12)
+        for i in range(3):
+            K[i,i] = Kp
+            K[i, i+3] = Kd
+            K[i+3, i+6] = Kpq
+            K[i+3, i+9] = Kdq
+        
+        u = -B0@K@xi
+
+        
+
+        # # outer attitude control loop
+        # w_fb = -Kpq * q_err
+
+        # # inner angular velocity control loop
+        
+        # w_m = w_a + w_d  # measured angular velocity (with disturbance)
+        # w_s = self.saturate(w_fb + R_ab @ w_b, -ang_saturation, ang_saturation)  # commanded angular velocity
+
+        # w_e = w_m - w_s  # angular velocity error
+
+        
+        # T_fb = ca.cross(w_e, J@w_e) - Kdq*w_e
+        # # T_fb = J @ (-ca.cross(w_e, R_ab @ w_b) - Kdq * w_e)  # no torque control for now
+        
+
+        # # position PD controller
+        # a_fb = (Kp * p_err + Kd * v_err) # simple PD control for position
+        
 
         # true dynamics
         g_a = -mu*p_a/(ca.norm_2(p_a)**3 + eps) # gravity in inertial frame
-        a_a = a_b - R_a.inverse() @ a_fb  # velocity control
+
+        a_fb = u[3:6]
+        a_a = a_b + a_fb  # velocity control
+
+        w_e = xi[9:]
+        T_fb = ca.cross(w_e, J@w_e) + u[9:]
+        T_b = ca.vertcat(0, 0, 0)  # feedforward torque
+        T_a = T_b + T_fb  # total torque in body frame (feedback and feedforward)
+
 
         # TODO Not realistic for vehicle to thrust perpindicular to body x,
         # should turn spacecraft to do this instead
@@ -166,7 +203,7 @@ class SatSimBurn(object):
         p_a_dot = v_a
         v_a_dot = R_a @ a_a + g_a
         q_a_dot = (q_a * lie.SO3Quat.elem(ca.vertcat(0, w_a[0], w_a[1], w_a[2]))).param / 2
-        w_a_dot = ca.solve(J, T_a - ca.cross(w_a, J @ w_a))
+        w_a_dot = ca.solve(J, T_a - ca.cross(w_a, J @ w_a)) + Kdq*ca.SX.eye(3)@w_d
 
         # state derivatives
         x_dot_vect = ca.vertcat(
