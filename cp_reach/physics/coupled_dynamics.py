@@ -140,7 +140,7 @@ def solve_se23_invariant_set(ref_acc, Kp, Kd, Kpq, Kdq, omega_dist, gravity_err)
 
     # Gain matrix K = np.array([Kp Kd 0
     #                           0 0  Kp])
-    print(Kp,Kd,Kpq,Kdq)
+    # print(Kp,Kd,Kpq,Kdq)
     K = np.array([
         [Kp,0,0,Kd,0,0,0,0,0,0,0,0],
         [0,Kp,0,0,Kd,0,0,0,0,0,0,0],
@@ -184,8 +184,13 @@ def solve_se23_invariant_set(ref_acc, Kp, Kd, Kpq, Kdq, omega_dist, gravity_err)
 
     # We want this in the form x dot = (A+B0)x + B1 dist1 + B2 dist2
     # top left of A is: -ad_nbar + C - B0K
+    print(ref_acc)
     vec = np.array([0, 0, 0, ref_acc[0], ref_acc[1], ref_acc[2], 0, 0, 0])
-    ad = ca.DM(SE23Dcm.ad_matrix(vec)).full()
+    xi = lie.se23.elem(ca.DM(vec)) # Lie Algebra
+    ad = ca.DM(lie.se23.adjoint(xi))
+
+    # ad = ca.DM(SE23Dcm.ad_matrix(vec)).full()
+    # print(ad)
 
     adC = np.zeros((9,9))
     adC[0, 3] = 1

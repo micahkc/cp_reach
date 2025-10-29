@@ -5,7 +5,7 @@ import casadi as ca
 import cp_reach.physics.coupled_dynamics as coupled_dynamics
 # from cyecca.lie.group_se23 import se23, SE23Quat  # or SE23Mrp
 
-def solve(ang_vel_dist, ref_acceleration, pid_values, sol=None, num_points= 720):
+def solve(ang_vel_dist, gravity_err, ref_acceleration, pid_values, sol=None, num_points= 720):
     """
     Compute over approximation of reachable sets for a satellite under bounded disturbances in translational acceleration
     and angular acceleration. This function over-approximates the reachable sets in both angular velocity
@@ -59,9 +59,6 @@ def solve(ang_vel_dist, ref_acceleration, pid_values, sol=None, num_points= 720)
     # PID values:
     kp, kd, kpq, kdq = pid_values
 
-    # Puts upper bound on position, velocity, attitude, and angular velocity error.
-    gravity_err = 0
-
     if sol is None:
         sol = coupled_dynamics.solve_se23_invariant_set(ref_acceleration, kp, kd, kpq, kdq, ang_vel_dist, gravity_err)
 
@@ -73,7 +70,6 @@ def solve(ang_vel_dist, ref_acceleration, pid_values, sol=None, num_points= 720)
 
     P9 = coupled_dynamics.project_ellipsoid_matrix(P_kin_scaled, [0,1,2,3,4,5,6,7,8])
     P3 = coupled_dynamics.project_ellipsoid_matrix(P_kin_scaled, [9,10,11])
-
     # xi_points = coupled_dynamics.walk_ellipsoid_planes(P9, n=num_points)
     xi_points = coupled_dynamics.sample_ellipsoid_surface(P9, n=num_points)
     

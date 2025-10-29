@@ -91,7 +91,7 @@ class SatSimBurn(object):
         p0_dict = {
             'mu': 3.986e14, # gravitational parameter for Earth
             't_burn': 60, # burn time of 60 seconds
-            'thrust': 50, # thrust magnitude of 50 N
+            'thrust': 30, # thrust magnitude of 50 N
             'w_d_amp': 1e-5, # disturbance amplitude of 1e-5 rad/s
             'w_d_x_phase': 0, # disturbance phase of 0 rad
             'w_d_y_phase': 0, # disturbance phase of 1 rad

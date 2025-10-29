@@ -124,6 +124,45 @@ def plot_burn_delta_vz_error(ax, data):
     ax.set_ylabel('Vz Error [m/s]')
     ax.grid()
     return ax
+
+def plot_burn_x_error(ax, data):
+    sat = sat_sim.SatSimBurn()
+    for i, r in enumerate(data):
+        x_a = r['xf'][sat.model['x_index']['px_a'], :]
+        x_b = r['xf'][sat.model['x_index']['px_b'], :]
+        x_err = ca.DM(x_a - x_b).full().squeeze()
+        t = r['xf'][0, :].full().squeeze()
+        h_x = ax.plot(t, x_err, 'b', alpha=0.2)
+    ax.set_xlabel('Time [s]')
+    ax.set_ylabel('Px Error [m]')
+    ax.grid()
+    return ax
+
+def plot_burn_y_error(ax, data):
+    sat = sat_sim.SatSimBurn()
+    for i, r in enumerate(data):
+        y_a = r['xf'][sat.model['x_index']['py_a'], :]
+        y_b = r['xf'][sat.model['x_index']['py_b'], :]
+        y_err = ca.DM(y_a - y_b).full().squeeze()
+        t = r['xf'][0, :].full().squeeze()
+        h_x = ax.plot(t, y_err, 'b', alpha=0.2)
+    ax.set_xlabel('Time [s]')
+    ax.set_ylabel('Px Error [m]')
+    ax.grid()
+    return ax
+
+def plot_burn_z_error(ax, data):
+    sat = sat_sim.SatSimBurn()
+    for i, r in enumerate(data):
+        z_a = r['xf'][sat.model['x_index']['pz_a'], :]
+        z_b = r['xf'][sat.model['x_index']['pz_b'], :]
+        z_err = ca.DM(z_a - z_b).full().squeeze()
+        t = r['xf'][0, :].full().squeeze()
+        h_x = ax.plot(t, z_err, 'b', alpha=0.2)
+    ax.set_xlabel('Time [s]')
+    ax.set_ylabel('Px Error [m]')
+    ax.grid()
+    return ax
     
 
 def plot_orbits(ax, data_ref, data):
