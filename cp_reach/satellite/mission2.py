@@ -68,6 +68,7 @@ class SatSimBurn(object):
         t_burn = ca.SX.sym('t_burn') # burn time
         thrust = ca.SX.sym('thrust') # thrust magnitude
         w_d_amp = ca.SX.sym('w_d_amp') # disturbance amplitude
+        a_d_amp = ca.SX.sym('a_d_amp') # disturbance amplitude
         w_d_x_phase = ca.SX.sym('w_d_x_phase') # disturbance phase
         w_d_y_phase = ca.SX.sym('w_d_y_phase') # disturbance phase
         w_d_z_phase = ca.SX.sym('w_d_z_phase') # disturbance phase
@@ -80,6 +81,7 @@ class SatSimBurn(object):
             't_burn': 60, # burn time of 60 seconds
             'thrust': 30, # thrust magnitude of 50 N
             'w_d_amp': 1e-5, # disturbance amplitude of 1e-5 rad/s
+            'a_d_amp': 1e-5, # disturbance amplitude of 1e-5 rad/s
             'w_d_x_phase': 0, # disturbance phase of 0 rad
             'w_d_y_phase': 0, # disturbance phase of 1 rad
             'w_d_z_phase': 0, # disturbance phase of 2 rad
@@ -90,13 +92,15 @@ class SatSimBurn(object):
         }
         p_index = { k: i for i, k in enumerate(p0_dict.keys()) }
 
-        p_vect = ca.vertcat(mu, t_burn, thrust, w_d_amp, w_d_x_phase, w_d_y_phase, w_d_z_phase, w_d_freq, Kp, Kd, Kpq)
+        p_vect = ca.vertcat(mu, t_burn, thrust, w_d_amp, a_d_amp, w_d_x_phase, w_d_y_phase, w_d_z_phase, w_d_freq, Kp, Kd, Kpq)
 
         # disturbance
-        w_d = w_d_amp*ca.vertcat(
-                ca.if_else(ca.sin(2*ca.pi*w_d_freq*t + w_d_x_phase) >0, 1, -1),
-                ca.if_else(ca.sin(2*ca.pi*w_d_freq*t + w_d_y_phase) >0, 1, -1),
-                ca.if_else(ca.sin(2*ca.pi*w_d_freq*t + w_d_z_phase) >0, 1, -1))
+        dist_signal = ca.vertcat(
+                        ca.if_else(ca.sin(2*ca.pi*w_d_freq*t + w_d_x_phase) >0, 1, -1),
+                        ca.if_else(ca.sin(2*ca.pi*w_d_freq*t + w_d_y_phase) >0, 1, -1),
+                        ca.if_else(ca.sin(2*ca.pi*w_d_freq*t + w_d_z_phase) >0, 1, -1))
+        w_d = (w_d_amp/np.sqrt(3)) * dist_signal
+        a_d = (a_d_amp/np.sqrt(3)) * dist_signal
 
         # reference dynamics
         eps = 1e-9
@@ -140,7 +144,7 @@ class SatSimBurn(object):
 
         # true kinematics
         p_a_dot = v_a
-        v_a_dot = R_a @ a_a + g_a
+        v_a_dot = R_a @ a_a + g_a + a_d
         q_a_dot = (q_a * lie.SO3Quat.elem(ca.vertcat(0, w_a[0], w_a[1], w_a[2]))).param / 2 
 
         # state derivatives

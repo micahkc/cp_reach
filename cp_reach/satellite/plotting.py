@@ -4,7 +4,7 @@ from matplotlib.lines import Line2D
 import numpy as np
 import casadi as ca
 import cyecca.lie as lie
-import cp_reach.satellite.mission as sat_sim
+import cp_reach.satellite.mission2 as sat_sim
 
 class HandlerArrow(HandlerPatch):
     def create_artists(self, legend, orig_handle, xdescent, ydescent,

@@ -259,6 +259,131 @@ def SE23LMIs2(alpha, A_list, B1, B2, w1_max, w2_max, verbosity=0, solver=None):
             'alpha': alpha,
             'prob': None,
         }
+    
+def SE23LMIs3(alpha, A_list, B1, B2, B3, w1_max, w2_max, w3_max,
+              Bu=None, verbosity=0, solver=None):
+    """
+    Certify an invariant ellipsoid V(x)=x^T P x <= sum_j mu_j * wj_max^2
+    for the LTI family:
+        xdot = A_i x + B1 w1 + B2 w2 + B3 w3     (i = 1..N)
+
+    using the stacked single-multiplier S-procedure:
+
+        [ A^T P + P A + α P      P B1         P B2         P B3  ]
+        [    B1^T P           -α μ1 I           0            0   ]  <<  0  for all i
+        [    B2^T P              0           -α μ2 I          0   ]
+        [    B3^T P              0              0          -α μ3 I]
+
+    Notes:
+    - `Bu` is optional and not used inside the LMI; pass it if you want to
+      form closed-loop A_i = A_i + Bu @ K outside this function.
+
+    Returns dict with:
+        'P'   : ndarray (n x n)
+        'mu1','mu2','mu3' : floats
+        'cost': float = mu1*w1_max^2 + mu2*w2_max^2 + mu3*w3_max^2
+        'alpha': alpha
+        'prob' : CVXPY Problem object
+    """
+    import cvxpy as cp
+    import numpy as np
+
+    if not A_list:
+        raise ValueError("A_list must be a non-empty list of system matrices.")
+
+    # Infer dimensions
+    n = A_list[0].shape[0]
+    for Ai in A_list:
+        if Ai.shape != (n, n):
+            raise ValueError("All A_i must be square and of the same size.")
+    m1 = B1.shape[1]
+    m2 = B2.shape[1]
+    m3 = B3.shape[1]
+
+    # Identities / zeros
+    I_n  = np.eye(n)
+    I_m1 = np.eye(m1)
+    I_m2 = np.eye(m2)
+    I_m3 = np.eye(m3)
+    Z_12 = np.zeros((m1, m2))
+    Z_13 = np.zeros((m1, m3))
+    Z_21 = np.zeros((m2, m1))
+    Z_23 = np.zeros((m2, m3))
+    Z_31 = np.zeros((m3, m1))
+    Z_32 = np.zeros((m3, m2))
+
+    # Decision variables
+    P   = cp.Variable((n, n), symmetric=True)
+    mu1 = cp.Variable(nonneg=True)
+    mu2 = cp.Variable(nonneg=True)
+    mu3 = cp.Variable(nonneg=True)
+
+    # Minimize the certified radius
+    gamma = mu1 * (w1_max**2) + mu2 * (w2_max**2) + mu3 * (w3_max**2)
+    objective = cp.Minimize(gamma)
+
+    # Basic Lyapunov PSD bound (tweak eps if needed)
+    eps = 1.0
+    constraints = [P >> eps * I_n]
+
+    for Ai in A_list:
+        TL = Ai.T @ P + P @ Ai + alpha * P
+        LMI = cp.bmat([
+            [TL,           P @ B1,               P @ B2,               P @ B3],
+            [B1.T @ P,  -alpha * mu1 * I_m1,        Z_12,                 Z_13],
+            [B2.T @ P,        Z_21,           -alpha * mu2 * I_m2,        Z_23],
+            [B3.T @ P,        Z_31,                Z_32,            -alpha * mu3 * I_m3],
+        ])
+        constraints.append(LMI << 0)
+
+    prob = cp.Problem(objective, constraints)
+
+    # Solver selection (use provided if given; else fall back)
+    try:
+        chosen_solver = solver
+        if chosen_solver is None:
+            # Try a reasonable default ordering
+            for s in [cp.CVXOPT, cp.MOSEK, cp.SCS]:
+                try:
+                    prob.solve(solver=s, verbose=(verbosity > 0))
+                    chosen_solver = s
+                    break
+                except Exception:
+                    continue
+            if chosen_solver is None:
+                # Final generic attempt with CVXPY default
+                prob.solve(verbose=(verbosity > 0))
+        else:
+            prob.solve(solver=chosen_solver, verbose=(verbosity > 0))
+
+        if prob.status not in ["optimal", "optimal_inaccurate"]:
+            raise ValueError(f"LMI solver failed: {prob.status}")
+
+        return {
+            'P':   P.value,
+            'mu1': float(mu1.value),
+            'mu2': float(mu2.value),
+            'mu3': float(mu3.value),
+            'cost': float(gamma.value),
+            'alpha': alpha,
+            'prob': prob,
+            'solver_used': getattr(chosen_solver, 'name', str(chosen_solver)) if chosen_solver else 'default'
+        }
+
+    except Exception as e:
+        if verbosity > 0:
+            print(f"Solver failed at alpha = {alpha:.6g}: {e}")
+        return {
+            'P': None,
+            'mu1': None,
+            'mu2': None,
+            'mu3': None,
+            'cost': np.inf,
+            'alpha': alpha,
+            'prob': None,
+            'solver_used': None,
+            'error': str(e),
+        }
 
 
 def solve_se23_invariant_set(ax_range, ay_range, az_range,
@@ -359,7 +484,7 @@ def solve_se23_invariant_set(ax_range, ay_range, az_range,
 
     return sol
 
-def solve_se23_invariant_set_log_control(ref_acc, Kp, Kd, Kpq, omega_dist, gravity_err):
+def solve_se23_invariant_set_log_control(ref_acc, Kp, Kd, Kpq, omega_dist, accel_dist, gravity_err):
     """
     Computes a common Lyapunov matrix P for the SE(2,3) system
     across a grid of linear acceleration and angular velocity values.
@@ -417,7 +542,7 @@ def solve_se23_invariant_set_log_control(ref_acc, Kp, Kd, Kpq, omega_dist, gravi
         [0,0,0,0,0,0,0,Kpq,0],
         [0,0,0,0,0,0,0,0,Kpq]])
     
-    # These are how disturbances enter the system (angular velocity (B1) and gravity (B2))
+    # These are how disturbances enter the system (angular velocity (B1) accelerational dist (B2) and gravity (B3))
     B1 = np.array([
         [0,0,0],
         [0,0,0],
@@ -441,10 +566,21 @@ def solve_se23_invariant_set_log_control(ref_acc, Kp, Kd, Kpq, omega_dist, gravi
         [0,0,0],
         [0,0,0],
     ])
-    
+
+    B3 = np.array([
+        [0,0,0],
+        [0,0,0],
+        [0,0,0],
+        [1,0,0],
+        [0,1,0],
+        [0,0,1],
+        [0,0,0],
+        [0,0,0],
+        [0,0,0],
+    ])
 
 
-    # We want this in the form x dot = Ax + B2 dist1 + B dist2
+    # We want this in the form x dot = Ax + B1 dist1 + B2 dist2 + B3 dist 3
     # A = -ad_nbar + C - B0K
     vec = np.array([0, 0, 0, ref_acc[0], ref_acc[1], ref_acc[2], 0, 0, 0])
     ad = SE23Dcm.ad_matrix(vec)
@@ -454,19 +590,19 @@ def solve_se23_invariant_set_log_control(ref_acc, Kp, Kd, Kpq, omega_dist, gravi
     A_matrices.append(np.array(A))
     eigenvalues.append(np.linalg.eigvals(A))
 
-    print(eigenvalues)
+    # print(eigenvalues)
     alpha_upper = -np.real(np.max(eigenvalues))  # Most unstable real eigenvalue
 
 
     # Line search to find alpha that minimizes cost (omega_dist mu1**2 + gravity_err mu2**2)
     alpha_opt = scipy.optimize.fminbound(
-        lambda alpha: SE23LMIs2(alpha, A_matrices, B1, B2, omega_dist, gravity_err)['cost'],
+        lambda alpha: SE23LMIs3(alpha, A_matrices, -B1*Kpq, B2, B3, omega_dist, accel_dist, gravity_err)['cost'],
         x1=1e-5,
         x2=alpha_upper
     )
 
     # Solve LMI at optimal alpha
-    sol = SE23LMIs2(alpha_opt, A_matrices, B1, B2, omega_dist, gravity_err)
+    sol = SE23LMIs3(alpha_opt, A_matrices, B1, B2, B3, omega_dist, accel_dist, gravity_err)
     
 
     if sol['prob'].status != 'optimal':

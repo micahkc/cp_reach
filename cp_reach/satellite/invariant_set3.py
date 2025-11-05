@@ -1,7 +1,7 @@
 import numpy as np
 import cp_reach.physics.rigid_body as rigid_body
 
-def solve(ang_vel_dist, ref_acceleration, pid_values, num_points=720):
+def solve(ang_vel_dist, accel_dist, ref_acceleration, pid_values, num_points=720):
     """
     Compute an SE(3) (position + orientation) over-approx reachable set using a
     Lyapunov ellipsoid on the log-coordinates, then map boundary samples to the group.
@@ -24,14 +24,15 @@ def solve(ang_vel_dist, ref_acceleration, pid_values, num_points=720):
     gravity_err = 0.0
 
     kinematics_sol = rigid_body.solve_se23_invariant_set_log_control(
-            ref_acceleration, kp, kd, kpq, omega_dist, gravity_err
+            ref_acceleration, kp, kd, kpq, omega_dist, accel_dist, gravity_err
         )
 
     mu1 = kinematics_sol['mu1']  # ω-disturbance multiplier
-    mu2 = kinematics_sol['mu2']  # gravity-disturbance multiplier
+    mu2 = kinematics_sol['mu2']  # acceleration disturbance multiplier
+    mu3 = kinematics_sol['mu3']  # gravity-disturbance multiplier
     P_kin = kinematics_sol['P']
 
-    val_kin = mu1 * omega_dist**2 + mu2 * gravity_err**2
+    val_kin = mu1 * omega_dist**2 + mu2 * accel_dist**2 + mu3* gravity_err**2
     P_kin_scaled = P_kin / val_kin
 
     # Sample the ellipsoid in log space and push forward via exp map
