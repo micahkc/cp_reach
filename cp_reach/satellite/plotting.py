@@ -5,6 +5,7 @@ import numpy as np
 import casadi as ca
 import cyecca.lie as lie
 import cp_reach.satellite.mission2 as sat_sim
+import time
 
 class HandlerArrow(HandlerPatch):
     def create_artists(self, legend, orig_handle, xdescent, ydescent,
@@ -35,7 +36,7 @@ def plot_burn_angular_velocity(ax,data):
     sat = sat_sim.SatSimBurn()
     for i, r in enumerate(data):
         ang_err = []
-        w_a = r['xf'][sat.model['x_index']['wx_a']:sat.model['x_index']['wz_a']+1, :].full().squeeze()
+        w_a = r['xf'][sat.model['x_index']['wx_a']:sat.model['x_index']['wz_a']+1, :].fulperf_counter()l().squeeze()
         w_b = r['xf'][sat.model['x_index']['wx_b']:sat.model['x_index']['wz_b']+1, :].full().squeeze()
         w_err = np.rad2deg(w_a - w_b)
         t = r['xf'][0, :].full().squeeze()
@@ -93,7 +94,7 @@ def plot_burn_delta_vx_error(ax, data):
         t = r['xf'][0, :].full().squeeze()
         h_x = ax.plot(t, v_err, 'b', alpha=0.2)
     ax.set_xlabel('Time [s]')
-    ax.set_ylabel('Vx Error [m/s]')
+    ax.set_ylabel('Vx [m/s]')
     ax.grid()
     return ax
 
@@ -107,7 +108,7 @@ def plot_burn_delta_vy_error(ax, data):
         t = r['xf'][0, :].full().squeeze()
         h_x = ax.plot(t, v_err, 'b', alpha=0.2)
     ax.set_xlabel('Time [s]')
-    ax.set_ylabel('Vy Error [m/s]')
+    ax.set_ylabel('Vy [m/s]')
     ax.grid()
     return ax
 
@@ -121,7 +122,7 @@ def plot_burn_delta_vz_error(ax, data):
         t = r['xf'][0, :].full().squeeze()
         h_x = ax.plot(t, v_err, 'b', alpha=0.2)
     ax.set_xlabel('Time [s]')
-    ax.set_ylabel('Vz Error [m/s]')
+    ax.set_ylabel('Vz [m/s]')
     ax.grid()
     return ax
 
@@ -134,7 +135,7 @@ def plot_burn_x_error(ax, data):
         t = r['xf'][0, :].full().squeeze()
         h_x = ax.plot(t, x_err, 'b', alpha=0.2)
     ax.set_xlabel('Time [s]')
-    ax.set_ylabel('Px Error [m]')
+    ax.set_ylabel('Px [m]')
     ax.grid()
     return ax
 
@@ -147,7 +148,7 @@ def plot_burn_y_error(ax, data):
         t = r['xf'][0, :].full().squeeze()
         h_x = ax.plot(t, y_err, 'b', alpha=0.2)
     ax.set_xlabel('Time [s]')
-    ax.set_ylabel('Px Error [m]')
+    ax.set_ylabel('Py [m]')
     ax.grid()
     return ax
 
@@ -160,14 +161,13 @@ def plot_burn_z_error(ax, data):
         t = r['xf'][0, :].full().squeeze()
         h_x = ax.plot(t, z_err, 'b', alpha=0.2)
     ax.set_xlabel('Time [s]')
-    ax.set_ylabel('Px Error [m]')
+    ax.set_ylabel('Pz [m]')
     ax.grid()
     return ax
-    
 
 def plot_orbits(ax, data_ref, data):
     sat = sat_sim.SatSimCoast()
-    ax.set_title('Monte Carlo Simulation of Spacecraft with Disturbances')
+    ax.set_title('Monte Carlo Simulation of Spacecraft')
     xind = sat.model['x_index']
 
     px_b = data_ref['xf'][xind['px_a'], :].full().squeeze()
@@ -195,7 +195,10 @@ def plot_orbits(ax, data_ref, data):
         px_b[0], py_b[0], vx_b[0] * scale_factor, vy_b[0]*scale_factor, angles='xy', scale_units='xy',
         scale=1, color='#228B22', width=0.01, zorder=2)
 
-    arrow_handle = FancyArrowPatch((0, 0), (1, 0), color='#228B22', lw=2, label='ΔV Direction')
+    arrow_handle = FancyArrowPatch((0, 0), (1, 0),
+                               color='#228B22', lw=2,
+                               label=r'$\Delta V$ Direction')
+
 
     legend_elements = [
         Line2D([0], [0], marker='o', color='w', markerfacecolor='#1F77B4',

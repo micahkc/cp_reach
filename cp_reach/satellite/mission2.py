@@ -69,7 +69,7 @@ class SatSimBurn(object):
         thrust = ca.SX.sym('thrust') # thrust magnitude
         w_d_amp = ca.SX.sym('w_d_amp') # disturbance amplitude
         a_d_amp = ca.SX.sym('a_d_amp') # disturbance amplitude
-        w_d_x_phase = ca.SX.sym('w_d_x_phase') # disturbance phase
+        w_d_x_phase = ca.SX.sym('w_d_x_phase') # distw_burbance phase
         w_d_y_phase = ca.SX.sym('w_d_y_phase') # disturbance phase
         w_d_z_phase = ca.SX.sym('w_d_z_phase') # disturbance phase
         w_d_freq = ca.SX.sym('w_d_freq') # disturbance frequency
@@ -106,7 +106,9 @@ class SatSimBurn(object):
         eps = 1e-9
         g_b = -mu*p_b/(ca.norm_2(p_b)**3 + eps) # gravity in inertial frame
         a_b = ca.vertcat(thrust, 0, 0) # thrust in body frame
-        w_b = ca.vertcat(0, 0, 0)  # angular velocity in body frame
+        # w_b = ca.vertcat(0, 0, 0)  # angular velocity in body frame
+        # w_b is calculate orbital angular velocity so r hat points toward earth (depends on positon or velocity)
+        w_b = ca.cross(p_b, v_b)/ca.dot(p_b, p_b)
 
         xi = (X_b.inverse() * X_a).log().param
 

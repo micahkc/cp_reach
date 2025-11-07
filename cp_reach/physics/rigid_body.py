@@ -82,6 +82,39 @@ def se23_solve_control(x0, mode):
 
     return B, K, BK, A_cl
 
+def _solve_single_channel_LMI(alpha, A_list, B, w_acc_max, verbosity=0, solver=None):
+    """
+    Solve:  [A^T P + P A + 2 alpha P,  P B;
+             B^T P,                   -mu I] << 0  for all A in A_list
+    minimizing mu. Returns P, mu, cost = mu * w_acc_max^2.
+    """
+    n = A_list[0].shape[0]
+    m = B.shape[1]
+    P = cp.Variable((n, n), symmetric=True)
+    mu = cp.Variable(nonneg=True)
+
+    constraints = [P >>np.eye(n)]
+    for A in A_list:
+        M11 = A.T @ P + P @ A + alpha*P
+        M12 = P @ B
+        M21 = M12.T
+        M22 = -alpha * mu * np.eye(m)
+        M = cp.bmat([[M11, M12],
+                     [M21, M22]])
+        constraints += [M << 0]
+
+    # obj = cp.Minimize(mu * (w_acc_max**2))
+    obj = cp.Minimize(mu)
+    prob = cp.Problem(obj, constraints)
+    prob.solve(solver=solver, verbose=verbosity > 1)
+
+    return {
+        'P': P.value,
+        'mu': float(mu.value) if mu.value is not None else None,
+        'cost': float(mu.value) * (w_acc_max**2) if mu.value is not None else np.inf,
+        'prob': prob
+    }
+
 
 def SE23LMIs(alpha, A_list, verbosity=0):
     """
@@ -612,6 +645,111 @@ def solve_se23_invariant_set_log_control(ref_acc, Kp, Kd, Kpq, omega_dist, accel
     return sol
 
 
+def solve_se23_invariant_set_log_control_simple(ref_acc, Kp, Kd, Kpq, accel_dist):
+    """
+    Computes a common Lyapunov matrix P for the SE(2,3) system
+    across a grid of linear acceleration and angular velocity values.
+
+    For each point in the grid, the system is linearized and closed-loop dynamics
+    are formed using LQR feedback. A Lyapunov LMI is then solved to find a
+    symmetric matrix P that satisfies:
+
+        Aᵢᵀ P + P Aᵢ + α P + structured Schur terms ≼ 0
+
+    for all linearized systems Aᵢ in the grid.
+
+    Parameters:
+        verbosity : int
+            If > 0, prints progress and solver output
+
+    Returns:
+        sol : dict
+            {
+              'P'     : Lyapunov matrix (9×9 ndarray),
+              'mu1'   : margin in position subspace,
+              'mu2'   : margin in velocity subspace,
+              'mu3'   : margin in orientation subspace,
+              'cost'  : scalar objective (mu1 + mu2 + mu3),
+              'alpha' : stability decay rate,
+              'prob'  : cvxpy Problem instance
+            }
+    """
+
+    A_matrices = []   # Linearized closed-loop dynamics
+    eigenvalues = []  # For estimating stability margin
+
+
+    
+    # This is how control input enters the system
+    B0 = np.array([
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [1, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0],
+        [0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 1, 0],
+        [0, 0, 0, 0, 0, 1],
+    ])
+
+    # Gain matrix K = np.array([Kp Kd 0
+    #                           0 0  Kp])
+    K = np.array([
+        [Kp,0,0,Kd,0,0,0,0,0],
+        [0,Kp,0,0,Kd,0,0,0,0],
+        [0,0,Kp,0,0,Kd,0,0,0],
+        [0,0,0,0,0,0,Kpq,0,0],
+        [0,0,0,0,0,0,0,Kpq,0],
+        [0,0,0,0,0,0,0,0,Kpq]])
+    
+    # These are how disturbances enter the system (angular velocity (B1) accelerational dist (B2) and gravity (B3))
+
+    B2 = np.array([
+        [0,0,0],
+        [0,0,0],
+        [0,0,0],
+        [1,0,0],
+        [0,1,0],
+        [0,0,1],
+        [0,0,0],
+        [0,0,0],
+        [0,0,0],
+    ])
+
+
+    # We want this in the form x dot = Ax + B1 dist1 + B2 dist2 + B3 dist 3
+    # A = -ad_nbar + C - B0K
+    vec = np.array([0, 0, 0, ref_acc[0], ref_acc[1], ref_acc[2], 0, 0, 0])
+    ad = SE23Dcm.ad_matrix(vec)
+    A = -ca.DM(ad - SE23Dcm.adC_matrix()) - B0@K
+
+
+    A_matrices.append(np.array(A))
+    eigenvalues.append(np.linalg.eigvals(A))
+
+    # print(eigenvalues)
+    alpha_upper = -np.real(np.max(eigenvalues))  # Most unstable real eigenvalue
+
+
+    # Line search to find alpha that minimizes cost (omega_dist mu1**2 + gravity_err mu2**2)
+    alpha_opt = scipy.optimize.fminbound(
+        lambda alpha: _solve_single_channel_LMI(alpha, A_matrices, B2, accel_dist)['cost'],
+        x1=1e-5,
+        x2=alpha_upper
+    )
+
+    # Solve LMI at optimal alpha
+    sol = _solve_single_channel_LMI(alpha_opt, A_matrices, B2, accel_dist)
+    
+
+    if sol['prob'].status != 'optimal':
+        raise RuntimeError(f"Lyapunov LMI failed at α = {alpha_opt:.4f}")
+
+
+    return sol
+
+
 
 
 def project_ellipsoid_subspace(M, indices):
@@ -758,4 +896,3 @@ def expmap(X):
         Eta_array[:,k] = np.concatenate((param_np[:6], euler_np))
     
     return Eta_array
-

@@ -4,6 +4,8 @@ import cvxpy as cp
 
 import itertools
 import scipy
+import cyecca
+import casadi as ca
 
 def th_param_bounds_from_traj(traj, mu):
     """
@@ -81,16 +83,24 @@ def _A_from_abcd(a, b, c, d):
     """
     First-order LTV matrix from YA Eq. 15 written with:
       a = ω^2,  b = ω,  c = ωdot,  d = k ω^(3/2)
-    State X = [x, y, z, vx, vy, vz]^T, disturbance enters as acceleration (B = [0; I]).
+    State X = [x, y, z, vx, vy, vz, rx, ry, rz]^T, disturbance enters as acceleration (B = [0; I]).
     """
     A = np.array([
-        [0, 0, 0, 1,   0,    0],
-        [0, 0, 0, 0,   1,    0],
-        [0, 0, 0, 0,   0,    1],
-        [a - d, 0,    c, 0,   0,  2*b],
-        [0,   -d,    0, 0,   0,    0],
-        [-c,   0, a + 2*d, -2*b, 0, 0]
+        [0, 0, 0, 1,   0,    0, 0, 0, 0],
+        [0, 0, 0, 0,   1,    0, 0, 0, 0],
+        [0, 0, 0, 0,   0,    1, 0, 0, 0],
+        [a - d, 0,    c, 0,   0,  2*b, 0, 0, 0],
+        [0,   -d,    0, 0,   0,    0, 0, 0, 0],
+        [-c,   0, a + 2*d, -2*b, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0]
+
     ], dtype=float)
+
+    skew_matrix = cyecca.lie.so3.elem(ca.DM(b)).to_matrix()
+    A[6:9, 6:9] = skew_matrix
+
     return A
 
 def solve_YA_TH_LTV_invariant_set_from_bounds(bounds, w_acc_max,
@@ -137,8 +147,11 @@ def solve_YA_TH_LTV_invariant_set_from_bounds(bounds, w_acc_max,
     c_vals = [bounds['c_min'], bounds['c_max']]
     d_vals = [bounds['d_min'], bounds['d_max']]
 
-      # Disturbance enters as acceleration
-    B = np.vstack([np.zeros((3,3)), np.eye(3)])
+      # Dirbance enters as acceleration
+    B1 = np.vstack([np.zeros((3,3)), np.eye(3)])
+    # Control B
+
+
 
     # PD gain matrix (always scalar Kp,Kd)
     K = np.hstack([Kp * np.eye(3), Kd * np.eye(3)])   # 3×6
@@ -147,7 +160,8 @@ def solve_YA_TH_LTV_invariant_set_from_bounds(bounds, w_acc_max,
     A_list = []
     for a, b, c, d in itertools.product(a_vals, b_vals, c_vals, d_vals):
         A = _A_from_abcd(a, b, c, d)
-        A_cl = A - B @ K     # PD closed-loop
+        B0 = _B_from_abcd(a, b, c, d)
+        A_cl = A - B0 @ K     # PD closed-loop
         A_list.append(A_cl)
 
     # Midpoint matrix for a rough alpha bound
