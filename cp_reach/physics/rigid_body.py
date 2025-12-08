@@ -3,11 +3,11 @@ import cvxpy as cp
 import control
 import itertools
 import scipy
-from cp_reach.lie.SE23 import *
-from cp_reach.lie.se3 import *
+# from cp_reach.lie.SE23 import *
+# from cp_reach.lie.se3 import *
 import cyecca.lie as lie
-from cyecca.lie.group_se23 import se23, SE23Quat
-from cyecca.lie.group_se23 import SE23Quat
+# from cyecca.lie.group_se23 import se23, SE23Quat
+# from cyecca.lie.group_se23 import SE23Quat
 import casadi as ca
 
 def se23_solve_control(x0, mode):

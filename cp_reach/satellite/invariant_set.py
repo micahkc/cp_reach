@@ -3,7 +3,7 @@ import numpy as np
 import casadi as ca
 import cp_reach.physics.angular_acceleration  as angular_acceleration
 import cp_reach.physics.rigid_body as rigid_body
-from cyecca.lie.group_se23 import se23, SE23Quat  # or SE23Mrp
+# from cyecca.lie.group_se23 import se23, SE23Quat  # or SE23Mrp
 
 def solve(ang_vel_dist, ref_acceleration, pid_values, dynamics_sol=None, kinematics_sol=None, num_points= 720):
     """
