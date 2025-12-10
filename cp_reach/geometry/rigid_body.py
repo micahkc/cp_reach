@@ -31,23 +31,9 @@ def se23_solve_control(x0, mode):
         A_cl  : (9 x 9) closed-loop system matrix (A + BK)
     """
 
-    # Compute drift dynamics using cyecca.lie
-    # A = -ad(x0) + A_C where A_C is the coupling matrix
-    x0_vec = np.asarray(x0)
-    n_bar_param = ca.vertcat(
-        ca.DM(x0_vec[0:3]),   # v
-        ca.DM(x0_vec[3:6]),   # a
-        ca.DM(x0_vec[6:9])    # omega
-    )
-    n_bar = lie.se23.elem(n_bar_param)
-    Ad_n_bar_sx = lie.se23.adjoint(n_bar)
-    Ad_n_bar = np.array(ca.DM(Ad_n_bar_sx).full())
-
-    # Coupling matrix
-    A_C = np.zeros((9, 9))
-    A_C[0:3, 3:6] = np.eye(3)  # Position-velocity coupling
-
-    A = -Ad_n_bar + A_C
+    # Compute drift dynamics:
+    # A = -ad(x0) + ad_C 
+    A = -ca.DM(SE23Dcm.ad_matrix(np.array(x0)) + SE23Dcm.adC_matrix())
 
     # Control input matrix B depends on system type
     if mode == 0:
@@ -201,22 +187,12 @@ def SE23LMIs(alpha, A_list, verbosity=0):
     # Formulate and solve optimization problem
     prob = cp.Problem(cp.Minimize(gamma), constraints)
 
-    # Try different solvers in order of preference
-    solvers_to_try = [cp.CVXOPT, cp.MOSEK, cp.SCS, cp.ECOS]
-    solved = False
+    try:
+        prob.solve(solver=cp.CVXOPT, verbose=(verbosity > 0))
 
-    for solver in solvers_to_try:
-        try:
-            prob.solve(solver=solver, verbose=(verbosity > 0))
-            if prob.status in ["optimal", "optimal_inaccurate"]:
-                solved = True
-                break
-        except Exception as e:
-            if verbosity > 0:
-                print(f"Solver {solver} failed: {e}")
-            continue
+        if prob.status not in ["optimal", "optimal_inaccurate"]:
+            raise ValueError(f"LMI solver failed: {prob.status}")
 
-    if solved:
         return {
             'P': P.value,
             'mu1': mu1.value,
@@ -226,9 +202,10 @@ def SE23LMIs(alpha, A_list, verbosity=0):
             'alpha': alpha,
             'prob': prob,
         }
-    else:
+
+    except Exception as e:
         if verbosity > 0:
-            print(f"All solvers failed at alpha = {alpha:.4f}")
+            print(f"Solver failed at alpha = {alpha:.4f}: {e}")
 
         return {
             'P': None,
@@ -507,36 +484,18 @@ def solve_se23_invariant_set(ax_range, ay_range, az_range,
         omega1, omega2, omega3, ax, ay, az = nu
 
         # Linearize drift at current (ω, a) using SE(2,3) Lie algebra
-        n_param = ca.vertcat(
-            ca.SX.zeros(3, 1),   # v = 0
-            ca.DM([ax, ay, az]), # a
-            ca.DM([omega1, omega2, omega3])  # omega
-        )
-        n = lie.se23.elem(n_param)
-        Ad_n_sx = lie.se23.adjoint(n)
-        ad = np.array(ca.DM(Ad_n_sx).full())
+        ad = SE23Dcm.ad_matrix(np.array([0, 0, 0, ax, ay, az, omega1, omega2, omega3]))
+        A = -ca.DM(ad + SE23Dcm.adC_matrix()) + BK
 
-        # Coupling matrix
-        A_C = np.zeros((9, 9))
-        A_C[0:3, 3:6] = np.eye(3)
-
-        A = -ad + A_C + BK
-
-        A_matrices.append(A)
+        A_matrices.append(np.array(A))
         eigenvalues.append(np.linalg.eigvals(A))
 
     # Step 4: Estimate maximum real part of eigenvalues for α search
     if verbosity > 0:
         print("Estimating decay rate α from closed-loop eigenvalues...")
 
-    # Get the most unstable eigenvalue (largest real part) across all operating points
-    max_real_parts = [np.max(np.real(eigs)) for eigs in eigenvalues]
-    most_unstable = np.max(max_real_parts)
 
-    # alpha_upper should be slightly less than -max_real_part for stability
-    # If the system is stable (max_real_part < 0), we use -max_real_part
-    # If marginally stable or unstable, we need a conservative bound
-    alpha_upper = max(-most_unstable, 0.1)  # At least 0.1 for numerical reasons
+    alpha_upper = -np.real(np.max(eigenvalues))  # Most unstable real eigenvalue
 
     # Step 5: Line search to minimize Lyapunov cost
     alpha_opt = scipy.optimize.fminbound(
@@ -549,7 +508,7 @@ def solve_se23_invariant_set(ax_range, ay_range, az_range,
     # Step 6: Solve LMI at optimal α
     sol = SE23LMIs(alpha_opt, A_matrices)
 
-    if sol['prob'] is None or sol['prob'].status not in ['optimal', 'optimal_inaccurate']:
+    if sol['prob'].status != 'optimal':
         raise RuntimeError(f"Lyapunov LMI failed at α = {alpha_opt:.4f}")
 
     if verbosity > 0:
@@ -655,20 +614,10 @@ def solve_se23_invariant_set_log_control(ref_acc, Kp, Kd, Kpq, omega_dist, accel
 
 
     # We want this in the form x dot = Ax + B1 dist1 + B2 dist2 + B3 dist 3
-    # A = -ad_nbar + A_C - B0K
-    n_param = ca.vertcat(
-        ca.SX.zeros(3, 1),           # v = 0
-        ca.DM(ref_acc),              # a = ref_acc
-        ca.SX.zeros(3, 1)            # omega = 0
-    )
-    n = lie.se23.elem(n_param)
-    Ad_n_sx = lie.se23.adjoint(n)
-    ad = np.array(ca.DM(Ad_n_sx).full())
-
-    A_C = np.zeros((9, 9))
-    A_C[0:3, 3:6] = np.eye(3)
-
-    A = -ad + A_C - B0@K
+    # A = -ad_nbar + C - B0K
+    vec = np.array([0, 0, 0, ref_acc[0], ref_acc[1], ref_acc[2], 0, 0, 0])
+    ad = SE23Dcm.ad_matrix(vec)
+    A = -ca.DM(ad - SE23Dcm.adC_matrix()) - B0@K
 
 
     A_matrices.append(np.array(A))
@@ -689,7 +638,7 @@ def solve_se23_invariant_set_log_control(ref_acc, Kp, Kd, Kpq, omega_dist, accel
     sol = SE23LMIs3(alpha_opt, A_matrices, B1, B2, B3, omega_dist, accel_dist, gravity_err)
     
 
-    if sol['prob'] is None or sol['prob'].status not in ['optimal', 'optimal_inaccurate']:
+    if sol['prob'].status != 'optimal':
         raise RuntimeError(f"Lyapunov LMI failed at α = {alpha_opt:.4f}")
 
 
@@ -770,20 +719,10 @@ def solve_se23_invariant_set_log_control_simple(ref_acc, Kp, Kd, Kpq, accel_dist
 
 
     # We want this in the form x dot = Ax + B1 dist1 + B2 dist2 + B3 dist 3
-    # A = -ad_nbar + A_C - B0K
-    n_param = ca.vertcat(
-        ca.SX.zeros(3, 1),           # v = 0
-        ca.DM(ref_acc),              # a = ref_acc
-        ca.SX.zeros(3, 1)            # omega = 0
-    )
-    n = lie.se23.elem(n_param)
-    Ad_n_sx = lie.se23.adjoint(n)
-    ad = np.array(ca.DM(Ad_n_sx).full())
-
-    A_C = np.zeros((9, 9))
-    A_C[0:3, 3:6] = np.eye(3)
-
-    A = -ad + A_C - B0@K
+    # A = -ad_nbar + C - B0K
+    vec = np.array([0, 0, 0, ref_acc[0], ref_acc[1], ref_acc[2], 0, 0, 0])
+    ad = SE23Dcm.ad_matrix(vec)
+    A = -ca.DM(ad - SE23Dcm.adC_matrix()) - B0@K
 
 
     A_matrices.append(np.array(A))
@@ -804,7 +743,7 @@ def solve_se23_invariant_set_log_control_simple(ref_acc, Kp, Kd, Kpq, accel_dist
     sol = _solve_single_channel_LMI(alpha_opt, A_matrices, B2, accel_dist)
     
 
-    if sol['prob'] is None or sol['prob'].status not in ['optimal', 'optimal_inaccurate']:
+    if sol['prob'].status != 'optimal':
         raise RuntimeError(f"Lyapunov LMI failed at α = {alpha_opt:.4f}")
 
 
@@ -896,31 +835,17 @@ def exp_map(points, rotation_points):
             rotation_points[2, i]    # θ_z
         ])
 
-        # Convert 6D twist vector to se(3) Lie algebra element
-        xi = lie.se3.elem(ca.DM(twist_vec))
+        # Convert 6D twist vector to 4×4 matrix in se(3) Lie algebra
+        Lie_matrix = SE3Dcm.wedge(twist_vec)
 
-        # Apply matrix exponential to get SE(3) transformation
-        # Exponentiate to SE(3) group (using Quaternion representation)
-        g = xi.exp(lie.SE3Quat)
+        # Apply matrix exponential to get SE(3) transformation matrix
+        exp_matrix = SE3Dcm.exp(Lie_matrix)
 
-        # Extract the parameters from SE(3) element
-        # SE3Quat gives [p_x, p_y, p_z, qw, qx, qy, qz] (7 params)
-        param = g.param
+        # Convert SE(3) matrix back to a 6D vector representation (e.g., [pos; axis-angle])
+        exp_vector = SE3Dcm.vector(exp_matrix)
 
-        # Extract position (first 3 elements)
-        pos = np.array(ca.DM(param[:3]).full()).flatten()
-
-        # Extract quaternion (next 4 elements)
-        quat = np.array(ca.DM(param[3:]).full()).flatten()
-
-        # Convert quaternion to axis-angle representation
-        # quat is [qw, qx, qy, qz] in cyecca
-        from scipy.spatial.transform import Rotation
-        rot = Rotation.from_quat([quat[1], quat[2], quat[3], quat[0]])  # scipy uses [x,y,z,w]
-        axis_angle = rot.as_rotvec()
-
-        # Combine position and axis-angle
-        exp_vector = np.concatenate([pos, axis_angle])
+        # Convert from CasADi DM to NumPy array and reshape to (6,)
+        exp_vector = np.array(ca.DM(exp_vector)).reshape(6,)
 
         # Store the result
         inv_points[:, i] = exp_vector

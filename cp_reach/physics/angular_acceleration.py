@@ -59,20 +59,32 @@ def omegaLMIs(alpha, A_list, B, verbosity=0):
     objective = cp.Minimize(mu1)
     prob = cp.Problem(objective, constraints)
 
-    try:
-        prob.solve(solver=cp.CVXOPT, verbose=(verbosity > 0))
-        cost = mu1.value
-        P_value = P.value
+    # Try different solvers in order of preference
+    solvers_to_try = [cp.CVXOPT, cp.MOSEK, cp.SCS, cp.ECOS]
+    solved = False
 
-    except Exception as e:
-        print(f"Exception during CVXPY solve: {e}")
+    for solver in solvers_to_try:
+        try:
+            prob.solve(solver=solver, verbose=(verbosity > 0))
+            if prob.status in ["optimal", "optimal_inaccurate"]:
+                cost = mu1.value
+                P_value = P.value
+                solved = True
+                break
+        except Exception as e:
+            if verbosity > 0:
+                print(f"Solver {solver} failed: {e}")
+            continue
+
+    if not solved:
+        print(f"All solvers failed for omegaLMIs")
         cost = np.inf
         P_value = None
 
     return {
         'cost': cost,
         'mu1': mu1.value if mu1.value is not None else None,
-        'P': np.round(P_value, 3) if P_value is not None else None,
+        'P': P_value,  # Don't round - preserve numerical precision
         'alpha': alpha,
         'prob': prob
     }
@@ -105,11 +117,14 @@ def solve_inv_set(Kdq, verbosity=0):
     )
 
     sol = omegaLMIs(alpha_opt, A_list, B_prime)
-    
 
-    if sol['prob'].status != 'optimal':
+
+    if sol['prob'] is None or sol['prob'].status not in ['optimal', 'optimal_inaccurate']:
         print(sol)
         raise RuntimeError("Optimization failed")
+
+    if sol['P'] is None:
+        raise RuntimeError("Optimization failed: P matrix is None")
 
     if verbosity > 0:
         print(f"Alpha: {alpha_opt:.4f}, mu1: {sol['mu1']}, Cost: {sol['cost']:.4e}")

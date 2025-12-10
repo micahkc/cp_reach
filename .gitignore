@@ -11,7 +11,7 @@ venv/
 
 # Jupyter
 .ipynb_checkpoints/
-*.ipynb
+*-checkpoint.ipynb
 
 # Packaging
 build/
