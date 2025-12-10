@@ -4,7 +4,7 @@ from matplotlib.lines import Line2D
 import numpy as np
 import casadi as ca
 import cyecca.lie as lie
-import cp_reach.applications.satellite.mission2 as sat_sim
+import cp_reach.applications.satellite.mission as sat_sim
 import time
 
 class HandlerArrow(HandlerPatch):

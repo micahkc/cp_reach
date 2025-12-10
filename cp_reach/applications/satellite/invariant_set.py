@@ -1,128 +1,61 @@
 """
-Satellite invariant set computation using 2-level Lyapunov approach.
+Simplified satellite invariant set computation using single-level log-linearization.
 
-This module implements the canonical API for satellite reachable set computation
-using separate dynamics-level (angular velocity) and kinematics-level (SE(3))
-Lyapunov analysis.
+This is a simplified variant that uses log-linearization on SE(2,3) directly,
+bypassing the 2-level angular dynamics + kinematics approach of invariant_set.py.
 
-NOTE: For a simplified single-level approach, see invariant_set4.py.
+This version is faster and used in recent research notebooks (satellite-outer2/3.ipynb).
+For the canonical 2-level API, see invariant_set.py.
 """
 
 import numpy as np
-import casadi as ca
-import cp_reach.physics.angular_acceleration  as angular_acceleration
 import cp_reach.physics.rigid_body as rigid_body
-# from cyecca.lie.group_se23 import se23, SE23Quat  # or SE23Mrp
+import time
 
-def solve(ang_vel_dist, ref_acceleration, pid_values, dynamics_sol=None, kinematics_sol=None, num_points= 720):
+def solve(accel_dist, ref_acceleration, pid_values, num_points=720):
     """
-    Compute over approximation of reachable sets for a satellite under bounded disturbances in translational acceleration
-    and angular acceleration. This function over-approximates the reachable sets in both angular velocity
-    space and SE(3) (position + orientation) space using Lyapunov-based ellipsoidal bounds.
+    Compute an SE(3) (position + orientation) over-approx reachable set using a
+    Lyapunov ellipsoid on the log-coordinates, then map boundary samples to the group.
 
-    Parameters:
-        accel_dist (float):
-            Upper bound on translational acceleration disturbance (m/s²), e.g., from wind or thrust noise.
-        
-        ang_accel_dist (float):
-            Upper bound on angular acceleration disturbance (rad/s^2), e.g., from torque uncertainty.
-
-        ref (dict):
-            Dictionary containing reference trajectories with keys:
-            'ax', 'ay', 'az', 'omega1', 'omega2', 'omega3'.
-
-        dynamics_sol (dict, optional):
-            Precomputed solution to dynamics-level Lyapunov LMI.
-
-        kinematics_sol (dict, optional):
-            Precomputed solution to kinematics-level Lyapunov LMI.
+    Args:
+        ang_vel_dist (float): Bound on angular-velocity magnitude used in the kinematic bound.
+        ref_acceleration: Reference translational acceleration input/trajectory (passed through).
+        pid_values (tuple): (kp, kd, kpq, kdq). Only kp, kd, kpq are used here.
+        num_points (int): Number of ellipsoid boundary samples.
 
     Returns:
-        ang_vel_points    : (3, N) ndarray
-            Reachable set points in angular velocity space due to dynamic disturbance.
-
-        lower_bound_omega : (3,) ndarray
-            Lower bound of angular velocity reachable set.
-
-        upper_bound_omega : (3,) ndarray
-            Upper bound of angular velocity reachable set.
-
-        omega_dist        : float
-            Derived worst-case angular velocity magnitude used in the kinematic bound.
-
-        dynamics_sol      : dict
-            Solution to the Lyapunov LMI for angular dynamics (contains P, mu1, etc.).
-
-        inv_points        : (6, N) ndarray
-            Reachable set points in SE(3) from translational and rotational disturbances.
-
-        lower_bound       : (6,) ndarray
-            Lower bound of SE(3) reachable set.
-
-        upper_bound       : (6,) ndarray
-            Upper bound of SE(3) reachable set.
-
-        kinematics_sol    : dict
-            Solution to the Lyapunov LMI for SE(3) kinematics (contains P, mu2, mu3, etc.).
+        dynamics_sol (dict|None)
+        eta_points (ndarray): Exp-mapped boundary samples (shape depends on expmap impl).
+        lower_bound (ndarray): Componentwise min of eta_points.
+        upper_bound (ndarray): Componentwise max of eta_points.
+        kinematics_sol (dict): Contains 'P', 'mu1', 'mu2', etc.
     """
-    # PID values:
-    kp, kd, kpq, kdq = pid_values
+    t0 = time.perf_counter()
+    kp, kd, kpq, kdq = pid_values  # kdq kept for interface symmetry
 
-    # === Dynamics-level Lyapunov (angular motion) ===
-    # Puts upper bound on reachable set of omega (angular velocity) error.
-    if dynamics_sol is None:
-        dynamics_sol = angular_acceleration.solve_inv_set(kdq, verbosity=0)
+    kinematics_sol = rigid_body.solve_se23_invariant_set_log_control_simple(
+            ref_acceleration, kp, kd, kpq, accel_dist
+        )
+    t1 = time.perf_counter()
+    print(t1-t0)
+    mu2 = kinematics_sol['mu']  # acceleration disturbance multiplier
 
-    # Get bounds from inner loop solution
-    mu1 = dynamics_sol['mu1']
-    P_dyn = dynamics_sol['P']
-    val_dyn = mu1 * ang_vel_dist**2
-    P_dyn_scaled = P_dyn / val_dyn
-    
-    ang_vel_points = angular_acceleration.obtain_points(P_dyn_scaled)
-    lower_bound_omega = np.min(ang_vel_points, axis=1)
-    upper_bound_omega = np.max(ang_vel_points, axis=1)
-
-    # Infinity norm-based overapproximation of angular velocity error.
-    # Transform P to unit ball to find worst-case angular velocity error.
-    r = np.sqrt(val_dyn)
-    eigvals, eigvecs = np.linalg.eig(P_dyn)
-    R = np.real(eigvecs @ np.diag(1 / np.sqrt(eigvals)))
-    omega_dist = r * np.max(np.linalg.norm(R, axis=1))
-
-
-
-    
-    # === Kinematics-level Lyapunov (SE(3)) ===
-    # Puts upper bound on position, velocity, and attitude error.
-    gravity_err = 0
-
-    if kinematics_sol is None:
-        kinematics_sol = rigid_body.solve_se23_invariant_set_log_control(ref_acceleration, kp, kd, kpq, omega_dist, gravity_err)
-
-    mu1 = kinematics_sol['mu1'] # ang acceleration disturbance
-    mu2 = kinematics_sol['mu2'] # gravity disturbance
     P_kin = kinematics_sol['P']
-    val_kin = mu1 * omega_dist**2 + mu2 * gravity_err**2
+
+    val_kin = mu2 * accel_dist**2 
     P_kin_scaled = P_kin / val_kin
 
+    t2 = time.perf_counter()
+    print(t2-t0)
+    # Sample the ellipsoid in log space and push forward via exp map
+    xi_points = rigid_body.sample_ellipsoid_boundary(P_kin_scaled, n=num_points)
 
-    # Go through points around ellipsoid and take exponential map
-    xi_points = rigid_body.sample_ellipsoid_boundary(P_kin_scaled, n=num_points)  # e.g., 20 per 2-plane
     eta_points = rigid_body.expmap(xi_points)
 
-    lower_bound = np.min(eta_points, axis=1)
-    upper_bound = np.max(eta_points, axis=1)
+    eta_min = np.min(eta_points, axis=1)
+    eta_max = np.max(eta_points, axis=1)
+    bounds = np.column_stack([eta_min, eta_max])
+    t3 = time.perf_counter()
+    print(t3-t0)
 
-
-    return (
-        ang_vel_points,
-        lower_bound_omega,
-        upper_bound_omega,
-        omega_dist,
-        dynamics_sol,
-        eta_points,
-        lower_bound,
-        upper_bound,
-        kinematics_sol,
-    )
+    return xi_points, eta_points, bounds, kinematics_sol
