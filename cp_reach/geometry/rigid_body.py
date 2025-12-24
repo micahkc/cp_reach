@@ -716,7 +716,7 @@ def solve_se23_invariant_set_log_control_simple(ref_acc, Kp, Kd, Kpq, accel_dist
         [0,0,0],
         [0,0,0],
     ])
-
+    print("here")
 
     # We want this in the form x dot = Ax + B1 dist1 + B2 dist2 + B3 dist 3
     # A = -ad_nbar + C - B0K

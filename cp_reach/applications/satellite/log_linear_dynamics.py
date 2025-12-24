@@ -76,9 +76,10 @@ class LogLinearErrorDynamics:
         xi: [ξ_p(3), ξ_v(3), ξ_R(3)] - Lie algebra error
         controls_ref: callable or array-like [a(3), ω(3)]
         """
-
+        
         # 1) Reference controls
         u_ref = controls_ref(t) if callable(controls_ref) else controls_ref
+        # print(f"u_ref: {u_ref}")
         a_bar      = np.asarray(u_ref[0:3])
         omega_bar  = np.asarray(u_ref[3:6])
 
@@ -93,12 +94,14 @@ class LogLinearErrorDynamics:
         #    adjoint: se23.adjoint(·) : se23 elem -> 9×9 matrix in algebra coords
         Ad_n_bar_sx = lie.se23.adjoint(n_bar)                  # CasADi SX 9×9
         Ad_n_bar    = np.array(ca.DM(Ad_n_bar_sx).full())  # convert to numpy
-
+        Ad_n_bar[3:6,6:9] = np.eye(3)#-Ad_n_bar[3:6,6:9]
+        
 
         A_C = np.zeros((9, 9))
         A_C[0:3,3:6] = np.eye(3)
 
         A = -Ad_n_bar + A_C   # 9×9
+        # print(A)
 
         # 4) Log-linear dynamics
         xi_dot = A @ xi
@@ -211,6 +214,7 @@ def simulate_error(spacecraft, t_span, state_ref_0, state_actual_0,
     X_actual_0 = lie.SE23Quat.elem(ca.DM(state_actual_0))
     eta_0 = X_ref_0.inverse() * X_actual_0
     xi_0 = np.array(ca.DM(eta_0.log().param).full()).flatten()
+    print(xi_0)
 
     # Simulate log-linear error dynamics
     log_linear = LogLinearErrorDynamics(spacecraft)
