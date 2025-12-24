@@ -36,7 +36,7 @@ class SE23Spacecraft:
 
         # Rotation matrix from quaternion
         q_lie = lie.SO3Quat.elem(ca.DM(q))
-        R = np.array(ca.DM(lie.SO3Dcm.from_Quat(q_lie).param).full()).reshape(3, 3)
+        R = np.array(ca.DM(lie.SO3Dcm.from_Quat(q_lie).param).full()).reshape(3, 3).T
 
         # Choose which position to use for gravity
         if p_ref_func is None:
@@ -94,7 +94,7 @@ class LogLinearErrorDynamics:
         #    adjoint: se23.adjoint(·) : se23 elem -> 9×9 matrix in algebra coords
         Ad_n_bar_sx = lie.se23.adjoint(n_bar)                  # CasADi SX 9×9
         Ad_n_bar    = np.array(ca.DM(Ad_n_bar_sx).full())  # convert to numpy
-        Ad_n_bar[3:6,6:9] = np.eye(3)#-Ad_n_bar[3:6,6:9]
+        # Ad_n_bar[3:6,6:9] = np.eye(3)#-Ad_n_bar[3:6,6:9]
         
 
         A_C = np.zeros((9, 9))
