@@ -1,0 +1,50 @@
+# CP_Reach Query Specification
+# Defines what reachability analysis to perform and how
+
+query:
+  # Analysis type: bounded_reachable_set, output_bound, invariant_set, flowpipe
+  type: flowpipe
+
+  # Which dynamics to analyze: error, full_state, estimation_error
+  dynamics: error
+
+  # Output variables to compute bounds for
+  outputs: [e, ev]
+
+  # Reference trajectory specification (required for flowpipe analysis)
+  trajectory:
+    # Source: "file" to load from CSV/NPY, or "polynomial" to generate
+    source: polynomial
+
+    # Waypoints for polynomial planner: (n_waypoints x n_dim)
+    # For the mass-spring-damper: position reference trajectory
+    waypoints:
+      - [0.0, 0.0]   # Start at origin
+      - [1.0, 0.2]   # Intermediate waypoint
+      - [2.0, 0.0]   # End position
+
+    # Velocity constraints at waypoints (null = free, optimized for smoothness)
+    velocities:
+      - [0.0, 0.0]   # Start at rest
+      - null         # Free velocity at middle
+      - [0.0, 0.0]   # End at rest
+
+    # Polynomial planner options
+    min_deriv: 4     # Minimize snap (4th derivative) - good for smooth motion
+    poly_deg: 5      # Polynomial degree (must be 2*bc_deriv - 1 for square system)
+    duration: auto   # "auto" to optimize durations, or a float for fixed total time
+    n_points: 100    # Number of time samples in output trajectory
+
+  # Alpha (decay rate) search parameters for LMI optimization
+  alpha_search:
+    min: 1.0e-4      # Minimum alpha value
+    max: 10.0        # Maximum alpha value
+    num_points: 40   # Number of grid points
+    scale: log       # "log" or "linear" spacing
+
+  # Output format options
+  output_format:
+    certificate: true  # Output Lyapunov certificate (P matrix)
+    bounds: true       # Output state bounds
+    plots: true        # Generate visualization plots
+    json: true         # Output results as JSON

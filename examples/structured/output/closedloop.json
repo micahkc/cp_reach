@@ -1,0 +1,2389 @@
+{
+  "model_name": "ClosedLoop",
+  "rumoca_version": "0.7.27",
+  "git_version": "v0.7.27-5-ge583fee-dirty",
+  "model_hash": "43dfde67be399567dd112f634a538af1",
+  "template_hash": "",
+  "t": {
+    "name": "t",
+    "name_token": {
+      "text": "",
+      "location": {
+        "start_line": 0,
+        "start_column": 0,
+        "end_line": 0,
+        "end_column": 0,
+        "start": 0,
+        "end": 0,
+        "file_name": ""
+      },
+      "token_number": 0,
+      "token_type": 0
+    },
+    "type_name": {
+      "name": [
+        {
+          "text": "Real",
+          "location": {
+            "start_line": 0,
+            "start_column": 0,
+            "end_line": 0,
+            "end_column": 0,
+            "start": 0,
+            "end": 0,
+            "file_name": ""
+          },
+          "token_number": 0,
+          "token_type": 0
+        }
+      ]
+    },
+    "variability": "Empty",
+    "causality": "Empty",
+    "connection": "Empty",
+    "description": [],
+    "start": "Empty",
+    "start_is_modification": false,
+    "start_has_each": false,
+    "shape": [],
+    "shape_expr": [],
+    "shape_is_modification": false,
+    "annotation": [],
+    "modifications": {},
+    "location": {
+      "start_line": 0,
+      "start_column": 0,
+      "end_line": 0,
+      "end_column": 0,
+      "start": 0,
+      "end": 0,
+      "file_name": ""
+    },
+    "condition": null,
+    "inner": false,
+    "outer": false,
+    "final_attributes": [],
+    "is_protected": false
+  },
+  "p": {
+    "m": {
+      "name": "m",
+      "name_token": {
+        "text": "m",
+        "location": {
+          "start_line": 8,
+          "start_column": 18,
+          "end_line": 8,
+          "end_column": 19,
+          "start": 279,
+          "end": 280,
+          "file_name": "closed_loop.mo"
+        },
+        "token_number": 9,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 8,
+              "start_column": 13,
+              "end_line": 8,
+              "end_column": 17,
+              "start": 274,
+              "end": 278,
+              "file_name": "closed_loop.mo"
+            },
+            "token_number": 8,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": {
+        "Parameter": {
+          "text": "parameter",
+          "location": {
+            "start_line": 8,
+            "start_column": 3,
+            "end_line": 8,
+            "end_column": 12,
+            "start": 264,
+            "end": 273,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 7,
+          "token_type": 48
+        }
+      },
+      "causality": "Empty",
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Mass [kg]",
+          "location": {
+            "start_line": 8,
+            "start_column": 26,
+            "end_line": 8,
+            "end_column": 37,
+            "start": 287,
+            "end": 298,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 12,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "1.0",
+            "location": {
+              "start_line": 8,
+              "start_column": 22,
+              "end_line": 8,
+              "end_column": 25,
+              "start": 283,
+              "end": 286,
+              "file_name": "closed_loop.mo"
+            },
+            "token_number": 11,
+            "token_type": 68
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 8,
+        "start_column": 13,
+        "end_line": 8,
+        "end_column": 19,
+        "start": 274,
+        "end": 280,
+        "file_name": "closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "c": {
+      "name": "c",
+      "name_token": {
+        "text": "c",
+        "location": {
+          "start_line": 9,
+          "start_column": 18,
+          "end_line": 9,
+          "end_column": 19,
+          "start": 317,
+          "end": 318,
+          "file_name": "closed_loop.mo"
+        },
+        "token_number": 16,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 9,
+              "start_column": 13,
+              "end_line": 9,
+              "end_column": 17,
+              "start": 312,
+              "end": 316,
+              "file_name": "closed_loop.mo"
+            },
+            "token_number": 15,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": {
+        "Parameter": {
+          "text": "parameter",
+          "location": {
+            "start_line": 9,
+            "start_column": 3,
+            "end_line": 9,
+            "end_column": 12,
+            "start": 302,
+            "end": 311,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 14,
+          "token_type": 48
+        }
+      },
+      "causality": "Empty",
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Damping coefficient [N*s/m]",
+          "location": {
+            "start_line": 9,
+            "start_column": 26,
+            "end_line": 9,
+            "end_column": 55,
+            "start": 325,
+            "end": 354,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 19,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "0.2",
+            "location": {
+              "start_line": 9,
+              "start_column": 22,
+              "end_line": 9,
+              "end_column": 25,
+              "start": 321,
+              "end": 324,
+              "file_name": "closed_loop.mo"
+            },
+            "token_number": 18,
+            "token_type": 68
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 9,
+        "start_column": 13,
+        "end_line": 9,
+        "end_column": 19,
+        "start": 312,
+        "end": 318,
+        "file_name": "closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "k": {
+      "name": "k",
+      "name_token": {
+        "text": "k",
+        "location": {
+          "start_line": 10,
+          "start_column": 18,
+          "end_line": 10,
+          "end_column": 19,
+          "start": 373,
+          "end": 374,
+          "file_name": "closed_loop.mo"
+        },
+        "token_number": 23,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 10,
+              "start_column": 13,
+              "end_line": 10,
+              "end_column": 17,
+              "start": 368,
+              "end": 372,
+              "file_name": "closed_loop.mo"
+            },
+            "token_number": 22,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": {
+        "Parameter": {
+          "text": "parameter",
+          "location": {
+            "start_line": 10,
+            "start_column": 3,
+            "end_line": 10,
+            "end_column": 12,
+            "start": 358,
+            "end": 367,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 21,
+          "token_type": 48
+        }
+      },
+      "causality": "Empty",
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Spring constant [N/m]",
+          "location": {
+            "start_line": 10,
+            "start_column": 26,
+            "end_line": 10,
+            "end_column": 49,
+            "start": 381,
+            "end": 404,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 26,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "1.0",
+            "location": {
+              "start_line": 10,
+              "start_column": 22,
+              "end_line": 10,
+              "end_column": 25,
+              "start": 377,
+              "end": 380,
+              "file_name": "closed_loop.mo"
+            },
+            "token_number": 25,
+            "token_type": 68
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 10,
+        "start_column": 13,
+        "end_line": 10,
+        "end_column": 19,
+        "start": 368,
+        "end": 374,
+        "file_name": "closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "kp": {
+      "name": "kp",
+      "name_token": {
+        "text": "kp",
+        "location": {
+          "start_line": 13,
+          "start_column": 18,
+          "end_line": 13,
+          "end_column": 20,
+          "start": 488,
+          "end": 490,
+          "file_name": "closed_loop.mo"
+        },
+        "token_number": 31,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 13,
+              "start_column": 13,
+              "end_line": 13,
+              "end_column": 17,
+              "start": 483,
+              "end": 487,
+              "file_name": "closed_loop.mo"
+            },
+            "token_number": 30,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": {
+        "Parameter": {
+          "text": "parameter",
+          "location": {
+            "start_line": 13,
+            "start_column": 3,
+            "end_line": 13,
+            "end_column": 12,
+            "start": 473,
+            "end": 482,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 29,
+          "token_type": 48
+        }
+      },
+      "causality": "Empty",
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Proportional gain",
+          "location": {
+            "start_line": 13,
+            "start_column": 27,
+            "end_line": 13,
+            "end_column": 46,
+            "start": 497,
+            "end": 516,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 34,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "2.0",
+            "location": {
+              "start_line": 13,
+              "start_column": 23,
+              "end_line": 13,
+              "end_column": 26,
+              "start": 493,
+              "end": 496,
+              "file_name": "closed_loop.mo"
+            },
+            "token_number": 33,
+            "token_type": 68
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 13,
+        "start_column": 13,
+        "end_line": 13,
+        "end_column": 20,
+        "start": 483,
+        "end": 490,
+        "file_name": "closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "kd": {
+      "name": "kd",
+      "name_token": {
+        "text": "kd",
+        "location": {
+          "start_line": 14,
+          "start_column": 18,
+          "end_line": 14,
+          "end_column": 20,
+          "start": 535,
+          "end": 537,
+          "file_name": "closed_loop.mo"
+        },
+        "token_number": 38,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 14,
+              "start_column": 13,
+              "end_line": 14,
+              "end_column": 17,
+              "start": 530,
+              "end": 534,
+              "file_name": "closed_loop.mo"
+            },
+            "token_number": 37,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": {
+        "Parameter": {
+          "text": "parameter",
+          "location": {
+            "start_line": 14,
+            "start_column": 3,
+            "end_line": 14,
+            "end_column": 12,
+            "start": 520,
+            "end": 529,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 36,
+          "token_type": 48
+        }
+      },
+      "causality": "Empty",
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Derivative gain",
+          "location": {
+            "start_line": 14,
+            "start_column": 27,
+            "end_line": 14,
+            "end_column": 44,
+            "start": 544,
+            "end": 561,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 41,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "0.8",
+            "location": {
+              "start_line": 14,
+              "start_column": 23,
+              "end_line": 14,
+              "end_column": 26,
+              "start": 540,
+              "end": 543,
+              "file_name": "closed_loop.mo"
+            },
+            "token_number": 40,
+            "token_type": 68
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 14,
+        "start_column": 13,
+        "end_line": 14,
+        "end_column": 20,
+        "start": 530,
+        "end": 537,
+        "file_name": "closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    }
+  },
+  "cp": {},
+  "x": {
+    "x": {
+      "name": "x",
+      "name_token": {
+        "text": "x",
+        "location": {
+          "start_line": 23,
+          "start_column": 8,
+          "end_line": 23,
+          "end_column": 9,
+          "start": 844,
+          "end": 845,
+          "file_name": "closed_loop.mo"
+        },
+        "token_number": 66,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 23,
+              "start_column": 3,
+              "end_line": 23,
+              "end_column": 7,
+              "start": 839,
+              "end": 843,
+              "file_name": "closed_loop.mo"
+            },
+            "token_number": 65,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": "Empty",
+      "causality": "Empty",
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Position [m]",
+          "location": {
+            "start_line": 23,
+            "start_column": 21,
+            "end_line": 23,
+            "end_column": 35,
+            "start": 857,
+            "end": 871,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 72,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedInteger",
+          "token": {
+            "text": "0",
+            "location": {
+              "start_line": 23,
+              "start_column": 18,
+              "end_line": 23,
+              "end_column": 19,
+              "start": 854,
+              "end": 855,
+              "file_name": "closed_loop.mo"
+            },
+            "token_number": 70,
+            "token_type": 67
+          }
+        }
+      },
+      "start_is_modification": true,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 23,
+        "start_column": 3,
+        "end_line": 23,
+        "end_column": 9,
+        "start": 839,
+        "end": 845,
+        "file_name": "closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "v": {
+      "name": "v",
+      "name_token": {
+        "text": "v",
+        "location": {
+          "start_line": 24,
+          "start_column": 8,
+          "end_line": 24,
+          "end_column": 9,
+          "start": 880,
+          "end": 881,
+          "file_name": "closed_loop.mo"
+        },
+        "token_number": 75,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 24,
+              "start_column": 3,
+              "end_line": 24,
+              "end_column": 7,
+              "start": 875,
+              "end": 879,
+              "file_name": "closed_loop.mo"
+            },
+            "token_number": 74,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": "Empty",
+      "causality": "Empty",
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Velocity [m/s]",
+          "location": {
+            "start_line": 24,
+            "start_column": 21,
+            "end_line": 24,
+            "end_column": 37,
+            "start": 893,
+            "end": 909,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 81,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedInteger",
+          "token": {
+            "text": "0",
+            "location": {
+              "start_line": 24,
+              "start_column": 18,
+              "end_line": 24,
+              "end_column": 19,
+              "start": 890,
+              "end": 891,
+              "file_name": "closed_loop.mo"
+            },
+            "token_number": 79,
+            "token_type": 67
+          }
+        }
+      },
+      "start_is_modification": true,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 24,
+        "start_column": 3,
+        "end_line": 24,
+        "end_column": 9,
+        "start": 875,
+        "end": 881,
+        "file_name": "closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    }
+  },
+  "y": {
+    "F": {
+      "name": "F",
+      "name_token": {
+        "text": "F",
+        "location": {
+          "start_line": 27,
+          "start_column": 8,
+          "end_line": 27,
+          "end_column": 9,
+          "start": 955,
+          "end": 956,
+          "file_name": "closed_loop.mo"
+        },
+        "token_number": 85,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 27,
+              "start_column": 3,
+              "end_line": 27,
+              "end_column": 7,
+              "start": 950,
+              "end": 954,
+              "file_name": "closed_loop.mo"
+            },
+            "token_number": 84,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": "Empty",
+      "causality": "Empty",
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Control force [N]",
+          "location": {
+            "start_line": 27,
+            "start_column": 10,
+            "end_line": 27,
+            "end_column": 29,
+            "start": 957,
+            "end": 976,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 86,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "0.0",
+            "location": {
+              "start_line": 0,
+              "start_column": 0,
+              "end_line": 0,
+              "end_column": 0,
+              "start": 0,
+              "end": 0,
+              "file_name": ""
+            },
+            "token_number": 0,
+            "token_type": 0
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 27,
+        "start_column": 3,
+        "end_line": 27,
+        "end_column": 9,
+        "start": 950,
+        "end": 956,
+        "file_name": "closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "e": {
+      "name": "e",
+      "name_token": {
+        "text": "e",
+        "location": {
+          "start_line": 28,
+          "start_column": 8,
+          "end_line": 28,
+          "end_column": 9,
+          "start": 985,
+          "end": 986,
+          "file_name": "closed_loop.mo"
+        },
+        "token_number": 89,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 28,
+              "start_column": 3,
+              "end_line": 28,
+              "end_column": 7,
+              "start": 980,
+              "end": 984,
+              "file_name": "closed_loop.mo"
+            },
+            "token_number": 88,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": "Empty",
+      "causality": "Empty",
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Position error [m]",
+          "location": {
+            "start_line": 28,
+            "start_column": 10,
+            "end_line": 28,
+            "end_column": 30,
+            "start": 987,
+            "end": 1007,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 90,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "0.0",
+            "location": {
+              "start_line": 0,
+              "start_column": 0,
+              "end_line": 0,
+              "end_column": 0,
+              "start": 0,
+              "end": 0,
+              "file_name": ""
+            },
+            "token_number": 0,
+            "token_type": 0
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 28,
+        "start_column": 3,
+        "end_line": 28,
+        "end_column": 9,
+        "start": 980,
+        "end": 986,
+        "file_name": "closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "ev": {
+      "name": "ev",
+      "name_token": {
+        "text": "ev",
+        "location": {
+          "start_line": 29,
+          "start_column": 8,
+          "end_line": 29,
+          "end_column": 10,
+          "start": 1016,
+          "end": 1018,
+          "file_name": "closed_loop.mo"
+        },
+        "token_number": 93,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 29,
+              "start_column": 3,
+              "end_line": 29,
+              "end_column": 7,
+              "start": 1011,
+              "end": 1015,
+              "file_name": "closed_loop.mo"
+            },
+            "token_number": 92,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": "Empty",
+      "causality": "Empty",
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Velocity error [m/s]",
+          "location": {
+            "start_line": 29,
+            "start_column": 11,
+            "end_line": 29,
+            "end_column": 33,
+            "start": 1019,
+            "end": 1041,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 94,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "0.0",
+            "location": {
+              "start_line": 0,
+              "start_column": 0,
+              "end_line": 0,
+              "end_column": 0,
+              "start": 0,
+              "end": 0,
+              "file_name": ""
+            },
+            "token_number": 0,
+            "token_type": 0
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 29,
+        "start_column": 3,
+        "end_line": 29,
+        "end_column": 10,
+        "start": 1011,
+        "end": 1018,
+        "file_name": "closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    }
+  },
+  "u": {
+    "x_ref": {
+      "name": "x_ref",
+      "name_token": {
+        "text": "x_ref",
+        "location": {
+          "start_line": 17,
+          "start_column": 14,
+          "end_line": 17,
+          "end_column": 19,
+          "start": 654,
+          "end": 659,
+          "file_name": "closed_loop.mo"
+        },
+        "token_number": 46,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 17,
+              "start_column": 9,
+              "end_line": 17,
+              "end_column": 13,
+              "start": 649,
+              "end": 653,
+              "file_name": "closed_loop.mo"
+            },
+            "token_number": 45,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": "Empty",
+      "causality": {
+        "Input": {
+          "text": "input",
+          "location": {
+            "start_line": 17,
+            "start_column": 3,
+            "end_line": 17,
+            "end_column": 8,
+            "start": 643,
+            "end": 648,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 44,
+          "token_type": 39
+        }
+      },
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Reference position [m]",
+          "location": {
+            "start_line": 17,
+            "start_column": 20,
+            "end_line": 17,
+            "end_column": 44,
+            "start": 660,
+            "end": 684,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 47,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "0.0",
+            "location": {
+              "start_line": 0,
+              "start_column": 0,
+              "end_line": 0,
+              "end_column": 0,
+              "start": 0,
+              "end": 0,
+              "file_name": ""
+            },
+            "token_number": 0,
+            "token_type": 0
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 17,
+        "start_column": 9,
+        "end_line": 17,
+        "end_column": 19,
+        "start": 649,
+        "end": 659,
+        "file_name": "closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "v_ref": {
+      "name": "v_ref",
+      "name_token": {
+        "text": "v_ref",
+        "location": {
+          "start_line": 18,
+          "start_column": 14,
+          "end_line": 18,
+          "end_column": 19,
+          "start": 699,
+          "end": 704,
+          "file_name": "closed_loop.mo"
+        },
+        "token_number": 51,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 18,
+              "start_column": 9,
+              "end_line": 18,
+              "end_column": 13,
+              "start": 694,
+              "end": 698,
+              "file_name": "closed_loop.mo"
+            },
+            "token_number": 50,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": "Empty",
+      "causality": {
+        "Input": {
+          "text": "input",
+          "location": {
+            "start_line": 18,
+            "start_column": 3,
+            "end_line": 18,
+            "end_column": 8,
+            "start": 688,
+            "end": 693,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 49,
+          "token_type": 39
+        }
+      },
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Reference velocity [m/s]",
+          "location": {
+            "start_line": 18,
+            "start_column": 20,
+            "end_line": 18,
+            "end_column": 46,
+            "start": 705,
+            "end": 731,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 52,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "0.0",
+            "location": {
+              "start_line": 0,
+              "start_column": 0,
+              "end_line": 0,
+              "end_column": 0,
+              "start": 0,
+              "end": 0,
+              "file_name": ""
+            },
+            "token_number": 0,
+            "token_type": 0
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 18,
+        "start_column": 9,
+        "end_line": 18,
+        "end_column": 19,
+        "start": 694,
+        "end": 704,
+        "file_name": "closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "u_ff": {
+      "name": "u_ff",
+      "name_token": {
+        "text": "u_ff",
+        "location": {
+          "start_line": 19,
+          "start_column": 14,
+          "end_line": 19,
+          "end_column": 18,
+          "start": 746,
+          "end": 750,
+          "file_name": "closed_loop.mo"
+        },
+        "token_number": 56,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 19,
+              "start_column": 9,
+              "end_line": 19,
+              "end_column": 13,
+              "start": 741,
+              "end": 745,
+              "file_name": "closed_loop.mo"
+            },
+            "token_number": 55,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": "Empty",
+      "causality": {
+        "Input": {
+          "text": "input",
+          "location": {
+            "start_line": 19,
+            "start_column": 3,
+            "end_line": 19,
+            "end_column": 8,
+            "start": 735,
+            "end": 740,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 54,
+          "token_type": 39
+        }
+      },
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Feedforward control [N]",
+          "location": {
+            "start_line": 19,
+            "start_column": 19,
+            "end_line": 19,
+            "end_column": 44,
+            "start": 751,
+            "end": 776,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 57,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "0.0",
+            "location": {
+              "start_line": 0,
+              "start_column": 0,
+              "end_line": 0,
+              "end_column": 0,
+              "start": 0,
+              "end": 0,
+              "file_name": ""
+            },
+            "token_number": 0,
+            "token_type": 0
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 19,
+        "start_column": 9,
+        "end_line": 19,
+        "end_column": 18,
+        "start": 741,
+        "end": 750,
+        "file_name": "closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "d": {
+      "name": "d",
+      "name_token": {
+        "text": "d",
+        "location": {
+          "start_line": 20,
+          "start_column": 14,
+          "end_line": 20,
+          "end_column": 15,
+          "start": 791,
+          "end": 792,
+          "file_name": "closed_loop.mo"
+        },
+        "token_number": 61,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 20,
+              "start_column": 9,
+              "end_line": 20,
+              "end_column": 13,
+              "start": 786,
+              "end": 790,
+              "file_name": "closed_loop.mo"
+            },
+            "token_number": 60,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": "Empty",
+      "causality": {
+        "Input": {
+          "text": "input",
+          "location": {
+            "start_line": 20,
+            "start_column": 3,
+            "end_line": 20,
+            "end_column": 8,
+            "start": 780,
+            "end": 785,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 59,
+          "token_type": 39
+        }
+      },
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Disturbance force [N]",
+          "location": {
+            "start_line": 20,
+            "start_column": 16,
+            "end_line": 20,
+            "end_column": 39,
+            "start": 793,
+            "end": 816,
+            "file_name": "closed_loop.mo"
+          },
+          "token_number": 62,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "0.0",
+            "location": {
+              "start_line": 0,
+              "start_column": 0,
+              "end_line": 0,
+              "end_column": 0,
+              "start": 0,
+              "end": 0,
+              "file_name": ""
+            },
+            "token_number": 0,
+            "token_type": 0
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 20,
+        "start_column": 9,
+        "end_line": 20,
+        "end_column": 15,
+        "start": 786,
+        "end": 792,
+        "file_name": "closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    }
+  },
+  "pre_z": {},
+  "pre_x": {},
+  "pre_m": {},
+  "z": {},
+  "m": {},
+  "c": {},
+  "fx": [
+    {
+      "Simple": {
+        "lhs": {
+          "FunctionCall": {
+            "comp": {
+              "local": false,
+              "parts": [
+                {
+                  "ident": {
+                    "text": "der",
+                    "location": {
+                      "start_line": 40,
+                      "start_column": 3,
+                      "end_line": 40,
+                      "end_column": 6,
+                      "start": 1199,
+                      "end": 1202,
+                      "file_name": "closed_loop.mo"
+                    },
+                    "token_number": 124,
+                    "token_type": 15
+                  },
+                  "subs": null
+                }
+              ]
+            },
+            "args": [
+              {
+                "ComponentReference": {
+                  "local": false,
+                  "parts": [
+                    {
+                      "ident": {
+                        "text": "x",
+                        "location": {
+                          "start_line": 40,
+                          "start_column": 7,
+                          "end_line": 40,
+                          "end_column": 8,
+                          "start": 1203,
+                          "end": 1204,
+                          "file_name": "closed_loop.mo"
+                        },
+                        "token_number": 126,
+                        "token_type": 64
+                      },
+                      "subs": null
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "rhs": {
+          "ComponentReference": {
+            "local": false,
+            "parts": [
+              {
+                "ident": {
+                  "text": "v",
+                  "location": {
+                    "start_line": 40,
+                    "start_column": 12,
+                    "end_line": 40,
+                    "end_column": 13,
+                    "start": 1208,
+                    "end": 1209,
+                    "file_name": "closed_loop.mo"
+                  },
+                  "token_number": 129,
+                  "token_type": 64
+                },
+                "subs": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "Simple": {
+        "lhs": {
+          "ComponentReference": {
+            "local": false,
+            "parts": [
+              {
+                "ident": {
+                  "text": "ev",
+                  "location": {
+                    "start_line": 34,
+                    "start_column": 3,
+                    "end_line": 34,
+                    "end_column": 5,
+                    "start": 1095,
+                    "end": 1097,
+                    "file_name": "closed_loop.mo"
+                  },
+                  "token_number": 104,
+                  "token_type": 64
+                },
+                "subs": null
+              }
+            ]
+          }
+        },
+        "rhs": {
+          "Binary": {
+            "op": {
+              "Sub": {
+                "text": "-",
+                "location": {
+                  "start_line": 34,
+                  "start_column": 10,
+                  "end_line": 34,
+                  "end_column": 11,
+                  "start": 1102,
+                  "end": 1103,
+                  "file_name": "closed_loop.mo"
+                },
+                "token_number": 107,
+                "token_type": 91
+              }
+            },
+            "lhs": {
+              "ComponentReference": {
+                "local": false,
+                "parts": [
+                  {
+                    "ident": {
+                      "text": "v",
+                      "location": {
+                        "start_line": 34,
+                        "start_column": 8,
+                        "end_line": 34,
+                        "end_column": 9,
+                        "start": 1100,
+                        "end": 1101,
+                        "file_name": "closed_loop.mo"
+                      },
+                      "token_number": 106,
+                      "token_type": 64
+                    },
+                    "subs": null
+                  }
+                ]
+              }
+            },
+            "rhs": {
+              "ComponentReference": {
+                "local": false,
+                "parts": [
+                  {
+                    "ident": {
+                      "text": "v_ref",
+                      "location": {
+                        "start_line": 34,
+                        "start_column": 12,
+                        "end_line": 34,
+                        "end_column": 17,
+                        "start": 1104,
+                        "end": 1109,
+                        "file_name": "closed_loop.mo"
+                      },
+                      "token_number": 108,
+                      "token_type": 64
+                    },
+                    "subs": null
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "Simple": {
+        "lhs": {
+          "ComponentReference": {
+            "local": false,
+            "parts": [
+              {
+                "ident": {
+                  "text": "e",
+                  "location": {
+                    "start_line": 33,
+                    "start_column": 3,
+                    "end_line": 33,
+                    "end_column": 4,
+                    "start": 1078,
+                    "end": 1079,
+                    "file_name": "closed_loop.mo"
+                  },
+                  "token_number": 98,
+                  "token_type": 64
+                },
+                "subs": null
+              }
+            ]
+          }
+        },
+        "rhs": {
+          "Binary": {
+            "op": {
+              "Sub": {
+                "text": "-",
+                "location": {
+                  "start_line": 33,
+                  "start_column": 9,
+                  "end_line": 33,
+                  "end_column": 10,
+                  "start": 1084,
+                  "end": 1085,
+                  "file_name": "closed_loop.mo"
+                },
+                "token_number": 101,
+                "token_type": 91
+              }
+            },
+            "lhs": {
+              "ComponentReference": {
+                "local": false,
+                "parts": [
+                  {
+                    "ident": {
+                      "text": "x",
+                      "location": {
+                        "start_line": 33,
+                        "start_column": 7,
+                        "end_line": 33,
+                        "end_column": 8,
+                        "start": 1082,
+                        "end": 1083,
+                        "file_name": "closed_loop.mo"
+                      },
+                      "token_number": 100,
+                      "token_type": 64
+                    },
+                    "subs": null
+                  }
+                ]
+              }
+            },
+            "rhs": {
+              "ComponentReference": {
+                "local": false,
+                "parts": [
+                  {
+                    "ident": {
+                      "text": "x_ref",
+                      "location": {
+                        "start_line": 33,
+                        "start_column": 11,
+                        "end_line": 33,
+                        "end_column": 16,
+                        "start": 1086,
+                        "end": 1091,
+                        "file_name": "closed_loop.mo"
+                      },
+                      "token_number": 102,
+                      "token_type": 64
+                    },
+                    "subs": null
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "Simple": {
+        "lhs": {
+          "ComponentReference": {
+            "local": false,
+            "parts": [
+              {
+                "ident": {
+                  "text": "F",
+                  "location": {
+                    "start_line": 37,
+                    "start_column": 3,
+                    "end_line": 37,
+                    "end_column": 4,
+                    "start": 1151,
+                    "end": 1152,
+                    "file_name": "closed_loop.mo"
+                  },
+                  "token_number": 111,
+                  "token_type": 64
+                },
+                "subs": null
+              }
+            ]
+          }
+        },
+        "rhs": {
+          "Binary": {
+            "op": {
+              "Sub": {
+                "text": "-",
+                "location": {
+                  "start_line": 37,
+                  "start_column": 19,
+                  "end_line": 37,
+                  "end_column": 20,
+                  "start": 1167,
+                  "end": 1168,
+                  "file_name": "closed_loop.mo"
+                },
+                "token_number": 118,
+                "token_type": 91
+              }
+            },
+            "lhs": {
+              "Binary": {
+                "op": {
+                  "Sub": {
+                    "text": "-",
+                    "location": {
+                      "start_line": 37,
+                      "start_column": 12,
+                      "end_line": 37,
+                      "end_column": 13,
+                      "start": 1160,
+                      "end": 1161,
+                      "file_name": "closed_loop.mo"
+                    },
+                    "token_number": 114,
+                    "token_type": 91
+                  }
+                },
+                "lhs": {
+                  "ComponentReference": {
+                    "local": false,
+                    "parts": [
+                      {
+                        "ident": {
+                          "text": "u_ff",
+                          "location": {
+                            "start_line": 37,
+                            "start_column": 7,
+                            "end_line": 37,
+                            "end_column": 11,
+                            "start": 1155,
+                            "end": 1159,
+                            "file_name": "closed_loop.mo"
+                          },
+                          "token_number": 113,
+                          "token_type": 64
+                        },
+                        "subs": null
+                      }
+                    ]
+                  }
+                },
+                "rhs": {
+                  "Binary": {
+                    "op": {
+                      "Mul": {
+                        "text": "*",
+                        "location": {
+                          "start_line": 37,
+                          "start_column": 16,
+                          "end_line": 37,
+                          "end_column": 17,
+                          "start": 1164,
+                          "end": 1165,
+                          "file_name": "closed_loop.mo"
+                        },
+                        "token_number": 116,
+                        "token_type": 80
+                      }
+                    },
+                    "lhs": {
+                      "ComponentReference": {
+                        "local": false,
+                        "parts": [
+                          {
+                            "ident": {
+                              "text": "kp",
+                              "location": {
+                                "start_line": 37,
+                                "start_column": 14,
+                                "end_line": 37,
+                                "end_column": 16,
+                                "start": 1162,
+                                "end": 1164,
+                                "file_name": "closed_loop.mo"
+                              },
+                              "token_number": 115,
+                              "token_type": 64
+                            },
+                            "subs": null
+                          }
+                        ]
+                      }
+                    },
+                    "rhs": {
+                      "ComponentReference": {
+                        "local": false,
+                        "parts": [
+                          {
+                            "ident": {
+                              "text": "e",
+                              "location": {
+                                "start_line": 37,
+                                "start_column": 17,
+                                "end_line": 37,
+                                "end_column": 18,
+                                "start": 1165,
+                                "end": 1166,
+                                "file_name": "closed_loop.mo"
+                              },
+                              "token_number": 117,
+                              "token_type": 64
+                            },
+                            "subs": null
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "Binary": {
+                "op": {
+                  "Mul": {
+                    "text": "*",
+                    "location": {
+                      "start_line": 37,
+                      "start_column": 23,
+                      "end_line": 37,
+                      "end_column": 24,
+                      "start": 1171,
+                      "end": 1172,
+                      "file_name": "closed_loop.mo"
+                    },
+                    "token_number": 120,
+                    "token_type": 80
+                  }
+                },
+                "lhs": {
+                  "ComponentReference": {
+                    "local": false,
+                    "parts": [
+                      {
+                        "ident": {
+                          "text": "kd",
+                          "location": {
+                            "start_line": 37,
+                            "start_column": 21,
+                            "end_line": 37,
+                            "end_column": 23,
+                            "start": 1169,
+                            "end": 1171,
+                            "file_name": "closed_loop.mo"
+                          },
+                          "token_number": 119,
+                          "token_type": 64
+                        },
+                        "subs": null
+                      }
+                    ]
+                  }
+                },
+                "rhs": {
+                  "ComponentReference": {
+                    "local": false,
+                    "parts": [
+                      {
+                        "ident": {
+                          "text": "ev",
+                          "location": {
+                            "start_line": 37,
+                            "start_column": 24,
+                            "end_line": 37,
+                            "end_column": 26,
+                            "start": 1172,
+                            "end": 1174,
+                            "file_name": "closed_loop.mo"
+                          },
+                          "token_number": 121,
+                          "token_type": 64
+                        },
+                        "subs": null
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "Simple": {
+        "lhs": {
+          "FunctionCall": {
+            "comp": {
+              "local": false,
+              "parts": [
+                {
+                  "ident": {
+                    "text": "der",
+                    "location": {
+                      "start_line": 41,
+                      "start_column": 3,
+                      "end_line": 41,
+                      "end_column": 6,
+                      "start": 1213,
+                      "end": 1216,
+                      "file_name": "closed_loop.mo"
+                    },
+                    "token_number": 131,
+                    "token_type": 15
+                  },
+                  "subs": null
+                }
+              ]
+            },
+            "args": [
+              {
+                "ComponentReference": {
+                  "local": false,
+                  "parts": [
+                    {
+                      "ident": {
+                        "text": "v",
+                        "location": {
+                          "start_line": 41,
+                          "start_column": 7,
+                          "end_line": 41,
+                          "end_column": 8,
+                          "start": 1217,
+                          "end": 1218,
+                          "file_name": "closed_loop.mo"
+                        },
+                        "token_number": 133,
+                        "token_type": 64
+                      },
+                      "subs": null
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "rhs": {
+          "Binary": {
+            "op": {
+              "Div": {
+                "text": "/",
+                "location": {
+                  "start_line": 41,
+                  "start_column": 32,
+                  "end_line": 41,
+                  "end_column": 33,
+                  "start": 1242,
+                  "end": 1243,
+                  "file_name": "closed_loop.mo"
+                },
+                "token_number": 149,
+                "token_type": 94
+              }
+            },
+            "lhs": {
+              "Parenthesized": {
+                "inner": {
+                  "Binary": {
+                    "op": {
+                      "Sub": {
+                        "text": "-",
+                        "location": {
+                          "start_line": 41,
+                          "start_column": 25,
+                          "end_line": 41,
+                          "end_column": 26,
+                          "start": 1235,
+                          "end": 1236,
+                          "file_name": "closed_loop.mo"
+                        },
+                        "token_number": 144,
+                        "token_type": 91
+                      }
+                    },
+                    "lhs": {
+                      "Binary": {
+                        "op": {
+                          "Sub": {
+                            "text": "-",
+                            "location": {
+                              "start_line": 41,
+                              "start_column": 19,
+                              "end_line": 41,
+                              "end_column": 20,
+                              "start": 1229,
+                              "end": 1230,
+                              "file_name": "closed_loop.mo"
+                            },
+                            "token_number": 140,
+                            "token_type": 91
+                          }
+                        },
+                        "lhs": {
+                          "Binary": {
+                            "op": {
+                              "Add": {
+                                "text": "+",
+                                "location": {
+                                  "start_line": 41,
+                                  "start_column": 15,
+                                  "end_line": 41,
+                                  "end_column": 16,
+                                  "start": 1225,
+                                  "end": 1226,
+                                  "file_name": "closed_loop.mo"
+                                },
+                                "token_number": 138,
+                                "token_type": 90
+                              }
+                            },
+                            "lhs": {
+                              "ComponentReference": {
+                                "local": false,
+                                "parts": [
+                                  {
+                                    "ident": {
+                                      "text": "F",
+                                      "location": {
+                                        "start_line": 41,
+                                        "start_column": 13,
+                                        "end_line": 41,
+                                        "end_column": 14,
+                                        "start": 1223,
+                                        "end": 1224,
+                                        "file_name": "closed_loop.mo"
+                                      },
+                                      "token_number": 137,
+                                      "token_type": 64
+                                    },
+                                    "subs": null
+                                  }
+                                ]
+                              }
+                            },
+                            "rhs": {
+                              "ComponentReference": {
+                                "local": false,
+                                "parts": [
+                                  {
+                                    "ident": {
+                                      "text": "d",
+                                      "location": {
+                                        "start_line": 41,
+                                        "start_column": 17,
+                                        "end_line": 41,
+                                        "end_column": 18,
+                                        "start": 1227,
+                                        "end": 1228,
+                                        "file_name": "closed_loop.mo"
+                                      },
+                                      "token_number": 139,
+                                      "token_type": 64
+                                    },
+                                    "subs": null
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "rhs": {
+                          "Binary": {
+                            "op": {
+                              "Mul": {
+                                "text": "*",
+                                "location": {
+                                  "start_line": 41,
+                                  "start_column": 22,
+                                  "end_line": 41,
+                                  "end_column": 23,
+                                  "start": 1232,
+                                  "end": 1233,
+                                  "file_name": "closed_loop.mo"
+                                },
+                                "token_number": 142,
+                                "token_type": 80
+                              }
+                            },
+                            "lhs": {
+                              "ComponentReference": {
+                                "local": false,
+                                "parts": [
+                                  {
+                                    "ident": {
+                                      "text": "c",
+                                      "location": {
+                                        "start_line": 41,
+                                        "start_column": 21,
+                                        "end_line": 41,
+                                        "end_column": 22,
+                                        "start": 1231,
+                                        "end": 1232,
+                                        "file_name": "closed_loop.mo"
+                                      },
+                                      "token_number": 141,
+                                      "token_type": 64
+                                    },
+                                    "subs": null
+                                  }
+                                ]
+                              }
+                            },
+                            "rhs": {
+                              "ComponentReference": {
+                                "local": false,
+                                "parts": [
+                                  {
+                                    "ident": {
+                                      "text": "v",
+                                      "location": {
+                                        "start_line": 41,
+                                        "start_column": 23,
+                                        "end_line": 41,
+                                        "end_column": 24,
+                                        "start": 1233,
+                                        "end": 1234,
+                                        "file_name": "closed_loop.mo"
+                                      },
+                                      "token_number": 143,
+                                      "token_type": 64
+                                    },
+                                    "subs": null
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "rhs": {
+                      "Binary": {
+                        "op": {
+                          "Mul": {
+                            "text": "*",
+                            "location": {
+                              "start_line": 41,
+                              "start_column": 28,
+                              "end_line": 41,
+                              "end_column": 29,
+                              "start": 1238,
+                              "end": 1239,
+                              "file_name": "closed_loop.mo"
+                            },
+                            "token_number": 146,
+                            "token_type": 80
+                          }
+                        },
+                        "lhs": {
+                          "ComponentReference": {
+                            "local": false,
+                            "parts": [
+                              {
+                                "ident": {
+                                  "text": "k",
+                                  "location": {
+                                    "start_line": 41,
+                                    "start_column": 27,
+                                    "end_line": 41,
+                                    "end_column": 28,
+                                    "start": 1237,
+                                    "end": 1238,
+                                    "file_name": "closed_loop.mo"
+                                  },
+                                  "token_number": 145,
+                                  "token_type": 64
+                                },
+                                "subs": null
+                              }
+                            ]
+                          }
+                        },
+                        "rhs": {
+                          "ComponentReference": {
+                            "local": false,
+                            "parts": [
+                              {
+                                "ident": {
+                                  "text": "x",
+                                  "location": {
+                                    "start_line": 41,
+                                    "start_column": 29,
+                                    "end_line": 41,
+                                    "end_column": 30,
+                                    "start": 1239,
+                                    "end": 1240,
+                                    "file_name": "closed_loop.mo"
+                                  },
+                                  "token_number": 147,
+                                  "token_type": 64
+                                },
+                                "subs": null
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "ComponentReference": {
+                "local": false,
+                "parts": [
+                  {
+                    "ident": {
+                      "text": "m",
+                      "location": {
+                        "start_line": 41,
+                        "start_column": 34,
+                        "end_line": 41,
+                        "end_column": 35,
+                        "start": 1244,
+                        "end": 1245,
+                        "file_name": "closed_loop.mo"
+                      },
+                      "token_number": 150,
+                      "token_type": 64
+                    },
+                    "subs": null
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "fx_init": [],
+  "fz": [],
+  "fm": [],
+  "fr": {},
+  "fc": {}
+}

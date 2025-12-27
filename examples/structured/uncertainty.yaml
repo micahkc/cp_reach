@@ -1,0 +1,36 @@
+# Uncertainty specification for the mass-spring-damper closed-loop system
+#
+# This file defines the uncertainty model for reachability analysis:
+# - Disturbance bounds on inputs
+# - Parametric uncertainty on physical parameters
+# - Initial condition uncertainty
+
+disturbances:
+  # Bounded disturbance force
+  d:
+    type: bounded
+    bound: 1.0
+    norm: inf
+
+parameters:
+  # Mass uncertainty (10% around nominal)
+  m:
+    nominal: 1.0
+    bounds: [0.9, 1.1]
+
+  # Damping uncertainty (20% around nominal)
+  c:
+    nominal: 0.2
+    bounds: [0.16, 0.24]
+
+  # Spring constant uncertainty (10% around nominal)
+  k:
+    nominal: 1.0
+    bounds: [0.9, 1.1]
+
+initial_conditions:
+  # Errors start at zero (tracking reference)
+  e:
+    type: zero
+  ev:
+    type: zero
