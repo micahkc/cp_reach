@@ -1,0 +1,3106 @@
+{
+  "model_name": "PendulumClosedLoop",
+  "rumoca_version": "0.7.27",
+  "git_version": "v0.7.27-5-ge583fee-dirty",
+  "model_hash": "1430c80ef4d8454bad18b0d73dcdaa85",
+  "template_hash": "",
+  "t": {
+    "name": "t",
+    "name_token": {
+      "text": "",
+      "location": {
+        "start_line": 0,
+        "start_column": 0,
+        "end_line": 0,
+        "end_column": 0,
+        "start": 0,
+        "end": 0,
+        "file_name": ""
+      },
+      "token_number": 0,
+      "token_type": 0
+    },
+    "type_name": {
+      "name": [
+        {
+          "text": "Real",
+          "location": {
+            "start_line": 0,
+            "start_column": 0,
+            "end_line": 0,
+            "end_column": 0,
+            "start": 0,
+            "end": 0,
+            "file_name": ""
+          },
+          "token_number": 0,
+          "token_type": 0
+        }
+      ]
+    },
+    "variability": "Empty",
+    "causality": "Empty",
+    "connection": "Empty",
+    "description": [],
+    "start": "Empty",
+    "start_is_modification": false,
+    "start_has_each": false,
+    "shape": [],
+    "shape_expr": [],
+    "shape_is_modification": false,
+    "annotation": [],
+    "modifications": {},
+    "location": {
+      "start_line": 0,
+      "start_column": 0,
+      "end_line": 0,
+      "end_column": 0,
+      "start": 0,
+      "end": 0,
+      "file_name": ""
+    },
+    "condition": null,
+    "inner": false,
+    "outer": false,
+    "final_attributes": [],
+    "is_protected": false
+  },
+  "p": {
+    "m": {
+      "name": "m",
+      "name_token": {
+        "text": "m",
+        "location": {
+          "start_line": 7,
+          "start_column": 18,
+          "end_line": 7,
+          "end_column": 19,
+          "start": 257,
+          "end": 258,
+          "file_name": "pendulum_closed_loop.mo"
+        },
+        "token_number": 8,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 7,
+              "start_column": 13,
+              "end_line": 7,
+              "end_column": 17,
+              "start": 252,
+              "end": 256,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 7,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": {
+        "Parameter": {
+          "text": "parameter",
+          "location": {
+            "start_line": 7,
+            "start_column": 3,
+            "end_line": 7,
+            "end_column": 12,
+            "start": 242,
+            "end": 251,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 6,
+          "token_type": 48
+        }
+      },
+      "causality": "Empty",
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Mass [kg]",
+          "location": {
+            "start_line": 7,
+            "start_column": 26,
+            "end_line": 7,
+            "end_column": 37,
+            "start": 265,
+            "end": 276,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 11,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "1.0",
+            "location": {
+              "start_line": 7,
+              "start_column": 22,
+              "end_line": 7,
+              "end_column": 25,
+              "start": 261,
+              "end": 264,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 10,
+            "token_type": 68
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 7,
+        "start_column": 13,
+        "end_line": 7,
+        "end_column": 19,
+        "start": 252,
+        "end": 258,
+        "file_name": "pendulum_closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "l": {
+      "name": "l",
+      "name_token": {
+        "text": "l",
+        "location": {
+          "start_line": 8,
+          "start_column": 18,
+          "end_line": 8,
+          "end_column": 19,
+          "start": 295,
+          "end": 296,
+          "file_name": "pendulum_closed_loop.mo"
+        },
+        "token_number": 15,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 8,
+              "start_column": 13,
+              "end_line": 8,
+              "end_column": 17,
+              "start": 290,
+              "end": 294,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 14,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": {
+        "Parameter": {
+          "text": "parameter",
+          "location": {
+            "start_line": 8,
+            "start_column": 3,
+            "end_line": 8,
+            "end_column": 12,
+            "start": 280,
+            "end": 289,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 13,
+          "token_type": 48
+        }
+      },
+      "causality": "Empty",
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Pendulum length [m]",
+          "location": {
+            "start_line": 8,
+            "start_column": 26,
+            "end_line": 8,
+            "end_column": 47,
+            "start": 303,
+            "end": 324,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 18,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "1.0",
+            "location": {
+              "start_line": 8,
+              "start_column": 22,
+              "end_line": 8,
+              "end_column": 25,
+              "start": 299,
+              "end": 302,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 17,
+            "token_type": 68
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 8,
+        "start_column": 13,
+        "end_line": 8,
+        "end_column": 19,
+        "start": 290,
+        "end": 296,
+        "file_name": "pendulum_closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "g": {
+      "name": "g",
+      "name_token": {
+        "text": "g",
+        "location": {
+          "start_line": 9,
+          "start_column": 18,
+          "end_line": 9,
+          "end_column": 19,
+          "start": 343,
+          "end": 344,
+          "file_name": "pendulum_closed_loop.mo"
+        },
+        "token_number": 22,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 9,
+              "start_column": 13,
+              "end_line": 9,
+              "end_column": 17,
+              "start": 338,
+              "end": 342,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 21,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": {
+        "Parameter": {
+          "text": "parameter",
+          "location": {
+            "start_line": 9,
+            "start_column": 3,
+            "end_line": 9,
+            "end_column": 12,
+            "start": 328,
+            "end": 337,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 20,
+          "token_type": 48
+        }
+      },
+      "causality": "Empty",
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Gravitational acceleration [m/s^2]",
+          "location": {
+            "start_line": 9,
+            "start_column": 27,
+            "end_line": 9,
+            "end_column": 63,
+            "start": 352,
+            "end": 388,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 25,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "9.81",
+            "location": {
+              "start_line": 9,
+              "start_column": 22,
+              "end_line": 9,
+              "end_column": 26,
+              "start": 347,
+              "end": 351,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 24,
+            "token_type": 68
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 9,
+        "start_column": 13,
+        "end_line": 9,
+        "end_column": 19,
+        "start": 338,
+        "end": 344,
+        "file_name": "pendulum_closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "c": {
+      "name": "c",
+      "name_token": {
+        "text": "c",
+        "location": {
+          "start_line": 10,
+          "start_column": 18,
+          "end_line": 10,
+          "end_column": 19,
+          "start": 407,
+          "end": 408,
+          "file_name": "pendulum_closed_loop.mo"
+        },
+        "token_number": 29,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 10,
+              "start_column": 13,
+              "end_line": 10,
+              "end_column": 17,
+              "start": 402,
+              "end": 406,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 28,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": {
+        "Parameter": {
+          "text": "parameter",
+          "location": {
+            "start_line": 10,
+            "start_column": 3,
+            "end_line": 10,
+            "end_column": 12,
+            "start": 392,
+            "end": 401,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 27,
+          "token_type": 48
+        }
+      },
+      "causality": "Empty",
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Damping coefficient [N*m*s/rad]",
+          "location": {
+            "start_line": 10,
+            "start_column": 26,
+            "end_line": 10,
+            "end_column": 59,
+            "start": 415,
+            "end": 448,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 32,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "0.1",
+            "location": {
+              "start_line": 10,
+              "start_column": 22,
+              "end_line": 10,
+              "end_column": 25,
+              "start": 411,
+              "end": 414,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 31,
+            "token_type": 68
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 10,
+        "start_column": 13,
+        "end_line": 10,
+        "end_column": 19,
+        "start": 402,
+        "end": 408,
+        "file_name": "pendulum_closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "Kp": {
+      "name": "Kp",
+      "name_token": {
+        "text": "Kp",
+        "location": {
+          "start_line": 13,
+          "start_column": 18,
+          "end_line": 13,
+          "end_column": 20,
+          "start": 533,
+          "end": 535,
+          "file_name": "pendulum_closed_loop.mo"
+        },
+        "token_number": 37,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 13,
+              "start_column": 13,
+              "end_line": 13,
+              "end_column": 17,
+              "start": 528,
+              "end": 532,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 36,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": {
+        "Parameter": {
+          "text": "parameter",
+          "location": {
+            "start_line": 13,
+            "start_column": 3,
+            "end_line": 13,
+            "end_column": 12,
+            "start": 518,
+            "end": 527,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 35,
+          "token_type": 48
+        }
+      },
+      "causality": "Empty",
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Proportional gain",
+          "location": {
+            "start_line": 13,
+            "start_column": 27,
+            "end_line": 13,
+            "end_column": 46,
+            "start": 542,
+            "end": 561,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 40,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "5.0",
+            "location": {
+              "start_line": 13,
+              "start_column": 23,
+              "end_line": 13,
+              "end_column": 26,
+              "start": 538,
+              "end": 541,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 39,
+            "token_type": 68
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 13,
+        "start_column": 13,
+        "end_line": 13,
+        "end_column": 20,
+        "start": 528,
+        "end": 535,
+        "file_name": "pendulum_closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "Ki": {
+      "name": "Ki",
+      "name_token": {
+        "text": "Ki",
+        "location": {
+          "start_line": 14,
+          "start_column": 18,
+          "end_line": 14,
+          "end_column": 20,
+          "start": 580,
+          "end": 582,
+          "file_name": "pendulum_closed_loop.mo"
+        },
+        "token_number": 44,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 14,
+              "start_column": 13,
+              "end_line": 14,
+              "end_column": 17,
+              "start": 575,
+              "end": 579,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 43,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": {
+        "Parameter": {
+          "text": "parameter",
+          "location": {
+            "start_line": 14,
+            "start_column": 3,
+            "end_line": 14,
+            "end_column": 12,
+            "start": 565,
+            "end": 574,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 42,
+          "token_type": 48
+        }
+      },
+      "causality": "Empty",
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Integral gain",
+          "location": {
+            "start_line": 14,
+            "start_column": 27,
+            "end_line": 14,
+            "end_column": 42,
+            "start": 589,
+            "end": 604,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 47,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "1.0",
+            "location": {
+              "start_line": 14,
+              "start_column": 23,
+              "end_line": 14,
+              "end_column": 26,
+              "start": 585,
+              "end": 588,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 46,
+            "token_type": 68
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 14,
+        "start_column": 13,
+        "end_line": 14,
+        "end_column": 20,
+        "start": 575,
+        "end": 582,
+        "file_name": "pendulum_closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "Kd": {
+      "name": "Kd",
+      "name_token": {
+        "text": "Kd",
+        "location": {
+          "start_line": 15,
+          "start_column": 18,
+          "end_line": 15,
+          "end_column": 20,
+          "start": 623,
+          "end": 625,
+          "file_name": "pendulum_closed_loop.mo"
+        },
+        "token_number": 51,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 15,
+              "start_column": 13,
+              "end_line": 15,
+              "end_column": 17,
+              "start": 618,
+              "end": 622,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 50,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": {
+        "Parameter": {
+          "text": "parameter",
+          "location": {
+            "start_line": 15,
+            "start_column": 3,
+            "end_line": 15,
+            "end_column": 12,
+            "start": 608,
+            "end": 617,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 49,
+          "token_type": 48
+        }
+      },
+      "causality": "Empty",
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Derivative gain",
+          "location": {
+            "start_line": 15,
+            "start_column": 27,
+            "end_line": 15,
+            "end_column": 44,
+            "start": 632,
+            "end": 649,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 54,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "0.5",
+            "location": {
+              "start_line": 15,
+              "start_column": 23,
+              "end_line": 15,
+              "end_column": 26,
+              "start": 628,
+              "end": 631,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 53,
+            "token_type": 68
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 15,
+        "start_column": 13,
+        "end_line": 15,
+        "end_column": 20,
+        "start": 618,
+        "end": 625,
+        "file_name": "pendulum_closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    }
+  },
+  "cp": {},
+  "x": {
+    "theta": {
+      "name": "theta",
+      "name_token": {
+        "text": "theta",
+        "location": {
+          "start_line": 25,
+          "start_column": 8,
+          "end_line": 25,
+          "end_column": 13,
+          "start": 987,
+          "end": 992,
+          "file_name": "pendulum_closed_loop.mo"
+        },
+        "token_number": 84,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 25,
+              "start_column": 3,
+              "end_line": 25,
+              "end_column": 7,
+              "start": 982,
+              "end": 986,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 83,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": "Empty",
+      "causality": "Empty",
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Angle [rad]",
+          "location": {
+            "start_line": 25,
+            "start_column": 25,
+            "end_line": 25,
+            "end_column": 38,
+            "start": 1004,
+            "end": 1017,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 90,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedInteger",
+          "token": {
+            "text": "0",
+            "location": {
+              "start_line": 25,
+              "start_column": 22,
+              "end_line": 25,
+              "end_column": 23,
+              "start": 1001,
+              "end": 1002,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 88,
+            "token_type": 67
+          }
+        }
+      },
+      "start_is_modification": true,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 25,
+        "start_column": 3,
+        "end_line": 25,
+        "end_column": 13,
+        "start": 982,
+        "end": 992,
+        "file_name": "pendulum_closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "omega": {
+      "name": "omega",
+      "name_token": {
+        "text": "omega",
+        "location": {
+          "start_line": 26,
+          "start_column": 8,
+          "end_line": 26,
+          "end_column": 13,
+          "start": 1026,
+          "end": 1031,
+          "file_name": "pendulum_closed_loop.mo"
+        },
+        "token_number": 93,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 26,
+              "start_column": 3,
+              "end_line": 26,
+              "end_column": 7,
+              "start": 1021,
+              "end": 1025,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 92,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": "Empty",
+      "causality": "Empty",
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Angular velocity [rad/s]",
+          "location": {
+            "start_line": 26,
+            "start_column": 25,
+            "end_line": 26,
+            "end_column": 51,
+            "start": 1043,
+            "end": 1069,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 99,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedInteger",
+          "token": {
+            "text": "0",
+            "location": {
+              "start_line": 26,
+              "start_column": 22,
+              "end_line": 26,
+              "end_column": 23,
+              "start": 1040,
+              "end": 1041,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 97,
+            "token_type": 67
+          }
+        }
+      },
+      "start_is_modification": true,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 26,
+        "start_column": 3,
+        "end_line": 26,
+        "end_column": 13,
+        "start": 1021,
+        "end": 1031,
+        "file_name": "pendulum_closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "xi": {
+      "name": "xi",
+      "name_token": {
+        "text": "xi",
+        "location": {
+          "start_line": 27,
+          "start_column": 8,
+          "end_line": 27,
+          "end_column": 10,
+          "start": 1078,
+          "end": 1080,
+          "file_name": "pendulum_closed_loop.mo"
+        },
+        "token_number": 102,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 27,
+              "start_column": 3,
+              "end_line": 27,
+              "end_column": 7,
+              "start": 1073,
+              "end": 1077,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 101,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": "Empty",
+      "causality": "Empty",
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Integral of angle error [rad*s]",
+          "location": {
+            "start_line": 27,
+            "start_column": 22,
+            "end_line": 27,
+            "end_column": 55,
+            "start": 1092,
+            "end": 1125,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 108,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedInteger",
+          "token": {
+            "text": "0",
+            "location": {
+              "start_line": 27,
+              "start_column": 19,
+              "end_line": 27,
+              "end_column": 20,
+              "start": 1089,
+              "end": 1090,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 106,
+            "token_type": 67
+          }
+        }
+      },
+      "start_is_modification": true,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 27,
+        "start_column": 3,
+        "end_line": 27,
+        "end_column": 10,
+        "start": 1073,
+        "end": 1080,
+        "file_name": "pendulum_closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    }
+  },
+  "y": {
+    "e": {
+      "name": "e",
+      "name_token": {
+        "text": "e",
+        "location": {
+          "start_line": 30,
+          "start_column": 8,
+          "end_line": 30,
+          "end_column": 9,
+          "start": 1171,
+          "end": 1172,
+          "file_name": "pendulum_closed_loop.mo"
+        },
+        "token_number": 112,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 30,
+              "start_column": 3,
+              "end_line": 30,
+              "end_column": 7,
+              "start": 1166,
+              "end": 1170,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 111,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": "Empty",
+      "causality": "Empty",
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Angle error [rad]",
+          "location": {
+            "start_line": 30,
+            "start_column": 10,
+            "end_line": 30,
+            "end_column": 29,
+            "start": 1173,
+            "end": 1192,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 113,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "0.0",
+            "location": {
+              "start_line": 0,
+              "start_column": 0,
+              "end_line": 0,
+              "end_column": 0,
+              "start": 0,
+              "end": 0,
+              "file_name": ""
+            },
+            "token_number": 0,
+            "token_type": 0
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 30,
+        "start_column": 3,
+        "end_line": 30,
+        "end_column": 9,
+        "start": 1166,
+        "end": 1172,
+        "file_name": "pendulum_closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "u": {
+      "name": "u",
+      "name_token": {
+        "text": "u",
+        "location": {
+          "start_line": 31,
+          "start_column": 8,
+          "end_line": 31,
+          "end_column": 9,
+          "start": 1201,
+          "end": 1202,
+          "file_name": "pendulum_closed_loop.mo"
+        },
+        "token_number": 116,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 31,
+              "start_column": 3,
+              "end_line": 31,
+              "end_column": 7,
+              "start": 1196,
+              "end": 1200,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 115,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": "Empty",
+      "causality": "Empty",
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Total control torque [N*m]",
+          "location": {
+            "start_line": 31,
+            "start_column": 10,
+            "end_line": 31,
+            "end_column": 38,
+            "start": 1203,
+            "end": 1231,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 117,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "0.0",
+            "location": {
+              "start_line": 0,
+              "start_column": 0,
+              "end_line": 0,
+              "end_column": 0,
+              "start": 0,
+              "end": 0,
+              "file_name": ""
+            },
+            "token_number": 0,
+            "token_type": 0
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 31,
+        "start_column": 3,
+        "end_line": 31,
+        "end_column": 9,
+        "start": 1196,
+        "end": 1202,
+        "file_name": "pendulum_closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    }
+  },
+  "u": {
+    "theta_ref": {
+      "name": "theta_ref",
+      "name_token": {
+        "text": "theta_ref",
+        "location": {
+          "start_line": 18,
+          "start_column": 14,
+          "end_line": 18,
+          "end_column": 23,
+          "start": 709,
+          "end": 718,
+          "file_name": "pendulum_closed_loop.mo"
+        },
+        "token_number": 59,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 18,
+              "start_column": 9,
+              "end_line": 18,
+              "end_column": 13,
+              "start": 704,
+              "end": 708,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 58,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": "Empty",
+      "causality": {
+        "Input": {
+          "text": "input",
+          "location": {
+            "start_line": 18,
+            "start_column": 3,
+            "end_line": 18,
+            "end_column": 8,
+            "start": 698,
+            "end": 703,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 57,
+          "token_type": 39
+        }
+      },
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Reference angle [rad]",
+          "location": {
+            "start_line": 18,
+            "start_column": 24,
+            "end_line": 18,
+            "end_column": 47,
+            "start": 719,
+            "end": 742,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 60,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "0.0",
+            "location": {
+              "start_line": 0,
+              "start_column": 0,
+              "end_line": 0,
+              "end_column": 0,
+              "start": 0,
+              "end": 0,
+              "file_name": ""
+            },
+            "token_number": 0,
+            "token_type": 0
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 18,
+        "start_column": 9,
+        "end_line": 18,
+        "end_column": 23,
+        "start": 704,
+        "end": 718,
+        "file_name": "pendulum_closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "omega_ref": {
+      "name": "omega_ref",
+      "name_token": {
+        "text": "omega_ref",
+        "location": {
+          "start_line": 19,
+          "start_column": 14,
+          "end_line": 19,
+          "end_column": 23,
+          "start": 757,
+          "end": 766,
+          "file_name": "pendulum_closed_loop.mo"
+        },
+        "token_number": 64,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 19,
+              "start_column": 9,
+              "end_line": 19,
+              "end_column": 13,
+              "start": 752,
+              "end": 756,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 63,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": "Empty",
+      "causality": {
+        "Input": {
+          "text": "input",
+          "location": {
+            "start_line": 19,
+            "start_column": 3,
+            "end_line": 19,
+            "end_column": 8,
+            "start": 746,
+            "end": 751,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 62,
+          "token_type": 39
+        }
+      },
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Reference angular velocity [rad/s]",
+          "location": {
+            "start_line": 19,
+            "start_column": 24,
+            "end_line": 19,
+            "end_column": 60,
+            "start": 767,
+            "end": 803,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 65,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "0.0",
+            "location": {
+              "start_line": 0,
+              "start_column": 0,
+              "end_line": 0,
+              "end_column": 0,
+              "start": 0,
+              "end": 0,
+              "file_name": ""
+            },
+            "token_number": 0,
+            "token_type": 0
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 19,
+        "start_column": 9,
+        "end_line": 19,
+        "end_column": 23,
+        "start": 752,
+        "end": 766,
+        "file_name": "pendulum_closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "alpha_ref": {
+      "name": "alpha_ref",
+      "name_token": {
+        "text": "alpha_ref",
+        "location": {
+          "start_line": 20,
+          "start_column": 14,
+          "end_line": 20,
+          "end_column": 23,
+          "start": 818,
+          "end": 827,
+          "file_name": "pendulum_closed_loop.mo"
+        },
+        "token_number": 69,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 20,
+              "start_column": 9,
+              "end_line": 20,
+              "end_column": 13,
+              "start": 813,
+              "end": 817,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 68,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": "Empty",
+      "causality": {
+        "Input": {
+          "text": "input",
+          "location": {
+            "start_line": 20,
+            "start_column": 3,
+            "end_line": 20,
+            "end_column": 8,
+            "start": 807,
+            "end": 812,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 67,
+          "token_type": 39
+        }
+      },
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Reference angular acceleration [rad/s^2]",
+          "location": {
+            "start_line": 20,
+            "start_column": 24,
+            "end_line": 20,
+            "end_column": 66,
+            "start": 828,
+            "end": 870,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 70,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "0.0",
+            "location": {
+              "start_line": 0,
+              "start_column": 0,
+              "end_line": 0,
+              "end_column": 0,
+              "start": 0,
+              "end": 0,
+              "file_name": ""
+            },
+            "token_number": 0,
+            "token_type": 0
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 20,
+        "start_column": 9,
+        "end_line": 20,
+        "end_column": 23,
+        "start": 813,
+        "end": 827,
+        "file_name": "pendulum_closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "u_ff": {
+      "name": "u_ff",
+      "name_token": {
+        "text": "u_ff",
+        "location": {
+          "start_line": 21,
+          "start_column": 14,
+          "end_line": 21,
+          "end_column": 18,
+          "start": 885,
+          "end": 889,
+          "file_name": "pendulum_closed_loop.mo"
+        },
+        "token_number": 74,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 21,
+              "start_column": 9,
+              "end_line": 21,
+              "end_column": 13,
+              "start": 880,
+              "end": 884,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 73,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": "Empty",
+      "causality": {
+        "Input": {
+          "text": "input",
+          "location": {
+            "start_line": 21,
+            "start_column": 3,
+            "end_line": 21,
+            "end_column": 8,
+            "start": 874,
+            "end": 879,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 72,
+          "token_type": 39
+        }
+      },
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Feedforward torque [N*m]",
+          "location": {
+            "start_line": 21,
+            "start_column": 19,
+            "end_line": 21,
+            "end_column": 45,
+            "start": 890,
+            "end": 916,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 75,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "0.0",
+            "location": {
+              "start_line": 0,
+              "start_column": 0,
+              "end_line": 0,
+              "end_column": 0,
+              "start": 0,
+              "end": 0,
+              "file_name": ""
+            },
+            "token_number": 0,
+            "token_type": 0
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 21,
+        "start_column": 9,
+        "end_line": 21,
+        "end_column": 18,
+        "start": 880,
+        "end": 889,
+        "file_name": "pendulum_closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    },
+    "d": {
+      "name": "d",
+      "name_token": {
+        "text": "d",
+        "location": {
+          "start_line": 22,
+          "start_column": 14,
+          "end_line": 22,
+          "end_column": 15,
+          "start": 931,
+          "end": 932,
+          "file_name": "pendulum_closed_loop.mo"
+        },
+        "token_number": 79,
+        "token_type": 64
+      },
+      "type_name": {
+        "name": [
+          {
+            "text": "Real",
+            "location": {
+              "start_line": 22,
+              "start_column": 9,
+              "end_line": 22,
+              "end_column": 13,
+              "start": 926,
+              "end": 930,
+              "file_name": "pendulum_closed_loop.mo"
+            },
+            "token_number": 78,
+            "token_type": 64
+          }
+        ]
+      },
+      "variability": "Empty",
+      "causality": {
+        "Input": {
+          "text": "input",
+          "location": {
+            "start_line": 22,
+            "start_column": 3,
+            "end_line": 22,
+            "end_column": 8,
+            "start": 920,
+            "end": 925,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 77,
+          "token_type": 39
+        }
+      },
+      "connection": "Empty",
+      "description": [
+        {
+          "text": "Disturbance torque [N*m]",
+          "location": {
+            "start_line": 22,
+            "start_column": 16,
+            "end_line": 22,
+            "end_column": 42,
+            "start": 933,
+            "end": 959,
+            "file_name": "pendulum_closed_loop.mo"
+          },
+          "token_number": 80,
+          "token_type": 66
+        }
+      ],
+      "start": {
+        "Terminal": {
+          "terminal_type": "UnsignedReal",
+          "token": {
+            "text": "0.0",
+            "location": {
+              "start_line": 0,
+              "start_column": 0,
+              "end_line": 0,
+              "end_column": 0,
+              "start": 0,
+              "end": 0,
+              "file_name": ""
+            },
+            "token_number": 0,
+            "token_type": 0
+          }
+        }
+      },
+      "start_is_modification": false,
+      "start_has_each": false,
+      "shape": [],
+      "shape_expr": [],
+      "shape_is_modification": false,
+      "annotation": [],
+      "modifications": {},
+      "location": {
+        "start_line": 22,
+        "start_column": 9,
+        "end_line": 22,
+        "end_column": 15,
+        "start": 926,
+        "end": 932,
+        "file_name": "pendulum_closed_loop.mo"
+      },
+      "condition": null,
+      "inner": false,
+      "outer": false,
+      "final_attributes": [],
+      "is_protected": false
+    }
+  },
+  "pre_z": {},
+  "pre_x": {},
+  "pre_m": {},
+  "z": {},
+  "m": {},
+  "c": {},
+  "fx": [
+    {
+      "Simple": {
+        "lhs": {
+          "FunctionCall": {
+            "comp": {
+              "local": false,
+              "parts": [
+                {
+                  "ident": {
+                    "text": "der",
+                    "location": {
+                      "start_line": 42,
+                      "start_column": 3,
+                      "end_line": 42,
+                      "end_column": 6,
+                      "start": 1508,
+                      "end": 1511,
+                      "file_name": "pendulum_closed_loop.mo"
+                    },
+                    "token_number": 146,
+                    "token_type": 15
+                  },
+                  "subs": null
+                }
+              ]
+            },
+            "args": [
+              {
+                "ComponentReference": {
+                  "local": false,
+                  "parts": [
+                    {
+                      "ident": {
+                        "text": "theta",
+                        "location": {
+                          "start_line": 42,
+                          "start_column": 7,
+                          "end_line": 42,
+                          "end_column": 12,
+                          "start": 1512,
+                          "end": 1517,
+                          "file_name": "pendulum_closed_loop.mo"
+                        },
+                        "token_number": 148,
+                        "token_type": 64
+                      },
+                      "subs": null
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "rhs": {
+          "ComponentReference": {
+            "local": false,
+            "parts": [
+              {
+                "ident": {
+                  "text": "omega",
+                  "location": {
+                    "start_line": 42,
+                    "start_column": 16,
+                    "end_line": 42,
+                    "end_column": 21,
+                    "start": 1521,
+                    "end": 1526,
+                    "file_name": "pendulum_closed_loop.mo"
+                  },
+                  "token_number": 151,
+                  "token_type": 64
+                },
+                "subs": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "Simple": {
+        "lhs": {
+          "ComponentReference": {
+            "local": false,
+            "parts": [
+              {
+                "ident": {
+                  "text": "e",
+                  "location": {
+                    "start_line": 35,
+                    "start_column": 3,
+                    "end_line": 35,
+                    "end_column": 4,
+                    "start": 1268,
+                    "end": 1269,
+                    "file_name": "pendulum_closed_loop.mo"
+                  },
+                  "token_number": 121,
+                  "token_type": 64
+                },
+                "subs": null
+              }
+            ]
+          }
+        },
+        "rhs": {
+          "Binary": {
+            "op": {
+              "Sub": {
+                "text": "-",
+                "location": {
+                  "start_line": 35,
+                  "start_column": 17,
+                  "end_line": 35,
+                  "end_column": 18,
+                  "start": 1282,
+                  "end": 1283,
+                  "file_name": "pendulum_closed_loop.mo"
+                },
+                "token_number": 124,
+                "token_type": 91
+              }
+            },
+            "lhs": {
+              "ComponentReference": {
+                "local": false,
+                "parts": [
+                  {
+                    "ident": {
+                      "text": "theta_ref",
+                      "location": {
+                        "start_line": 35,
+                        "start_column": 7,
+                        "end_line": 35,
+                        "end_column": 16,
+                        "start": 1272,
+                        "end": 1281,
+                        "file_name": "pendulum_closed_loop.mo"
+                      },
+                      "token_number": 123,
+                      "token_type": 64
+                    },
+                    "subs": null
+                  }
+                ]
+              }
+            },
+            "rhs": {
+              "ComponentReference": {
+                "local": false,
+                "parts": [
+                  {
+                    "ident": {
+                      "text": "theta",
+                      "location": {
+                        "start_line": 35,
+                        "start_column": 19,
+                        "end_line": 35,
+                        "end_column": 24,
+                        "start": 1284,
+                        "end": 1289,
+                        "file_name": "pendulum_closed_loop.mo"
+                      },
+                      "token_number": 125,
+                      "token_type": 64
+                    },
+                    "subs": null
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "Simple": {
+        "lhs": {
+          "FunctionCall": {
+            "comp": {
+              "local": false,
+              "parts": [
+                {
+                  "ident": {
+                    "text": "der",
+                    "location": {
+                      "start_line": 44,
+                      "start_column": 3,
+                      "end_line": 44,
+                      "end_column": 6,
+                      "start": 1602,
+                      "end": 1605,
+                      "file_name": "pendulum_closed_loop.mo"
+                    },
+                    "token_number": 198,
+                    "token_type": 15
+                  },
+                  "subs": null
+                }
+              ]
+            },
+            "args": [
+              {
+                "ComponentReference": {
+                  "local": false,
+                  "parts": [
+                    {
+                      "ident": {
+                        "text": "xi",
+                        "location": {
+                          "start_line": 44,
+                          "start_column": 7,
+                          "end_line": 44,
+                          "end_column": 9,
+                          "start": 1606,
+                          "end": 1608,
+                          "file_name": "pendulum_closed_loop.mo"
+                        },
+                        "token_number": 200,
+                        "token_type": 64
+                      },
+                      "subs": null
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "rhs": {
+          "ComponentReference": {
+            "local": false,
+            "parts": [
+              {
+                "ident": {
+                  "text": "e",
+                  "location": {
+                    "start_line": 44,
+                    "start_column": 13,
+                    "end_line": 44,
+                    "end_column": 14,
+                    "start": 1612,
+                    "end": 1613,
+                    "file_name": "pendulum_closed_loop.mo"
+                  },
+                  "token_number": 203,
+                  "token_type": 64
+                },
+                "subs": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "Simple": {
+        "lhs": {
+          "ComponentReference": {
+            "local": false,
+            "parts": [
+              {
+                "ident": {
+                  "text": "u",
+                  "location": {
+                    "start_line": 39,
+                    "start_column": 3,
+                    "end_line": 39,
+                    "end_column": 4,
+                    "start": 1428,
+                    "end": 1429,
+                    "file_name": "pendulum_closed_loop.mo"
+                  },
+                  "token_number": 129,
+                  "token_type": 64
+                },
+                "subs": null
+              }
+            ]
+          }
+        },
+        "rhs": {
+          "Binary": {
+            "op": {
+              "Sub": {
+                "text": "-",
+                "location": {
+                  "start_line": 39,
+                  "start_column": 27,
+                  "end_line": 39,
+                  "end_column": 28,
+                  "start": 1452,
+                  "end": 1453,
+                  "file_name": "pendulum_closed_loop.mo"
+                },
+                "token_number": 140,
+                "token_type": 91
+              }
+            },
+            "lhs": {
+              "Binary": {
+                "op": {
+                  "Add": {
+                    "text": "+",
+                    "location": {
+                      "start_line": 39,
+                      "start_column": 19,
+                      "end_line": 39,
+                      "end_column": 20,
+                      "start": 1444,
+                      "end": 1445,
+                      "file_name": "pendulum_closed_loop.mo"
+                    },
+                    "token_number": 136,
+                    "token_type": 90
+                  }
+                },
+                "lhs": {
+                  "Binary": {
+                    "op": {
+                      "Add": {
+                        "text": "+",
+                        "location": {
+                          "start_line": 39,
+                          "start_column": 12,
+                          "end_line": 39,
+                          "end_column": 13,
+                          "start": 1437,
+                          "end": 1438,
+                          "file_name": "pendulum_closed_loop.mo"
+                        },
+                        "token_number": 132,
+                        "token_type": 90
+                      }
+                    },
+                    "lhs": {
+                      "ComponentReference": {
+                        "local": false,
+                        "parts": [
+                          {
+                            "ident": {
+                              "text": "u_ff",
+                              "location": {
+                                "start_line": 39,
+                                "start_column": 7,
+                                "end_line": 39,
+                                "end_column": 11,
+                                "start": 1432,
+                                "end": 1436,
+                                "file_name": "pendulum_closed_loop.mo"
+                              },
+                              "token_number": 131,
+                              "token_type": 64
+                            },
+                            "subs": null
+                          }
+                        ]
+                      }
+                    },
+                    "rhs": {
+                      "Binary": {
+                        "op": {
+                          "Mul": {
+                            "text": "*",
+                            "location": {
+                              "start_line": 39,
+                              "start_column": 16,
+                              "end_line": 39,
+                              "end_column": 17,
+                              "start": 1441,
+                              "end": 1442,
+                              "file_name": "pendulum_closed_loop.mo"
+                            },
+                            "token_number": 134,
+                            "token_type": 80
+                          }
+                        },
+                        "lhs": {
+                          "ComponentReference": {
+                            "local": false,
+                            "parts": [
+                              {
+                                "ident": {
+                                  "text": "Kp",
+                                  "location": {
+                                    "start_line": 39,
+                                    "start_column": 14,
+                                    "end_line": 39,
+                                    "end_column": 16,
+                                    "start": 1439,
+                                    "end": 1441,
+                                    "file_name": "pendulum_closed_loop.mo"
+                                  },
+                                  "token_number": 133,
+                                  "token_type": 64
+                                },
+                                "subs": null
+                              }
+                            ]
+                          }
+                        },
+                        "rhs": {
+                          "ComponentReference": {
+                            "local": false,
+                            "parts": [
+                              {
+                                "ident": {
+                                  "text": "e",
+                                  "location": {
+                                    "start_line": 39,
+                                    "start_column": 17,
+                                    "end_line": 39,
+                                    "end_column": 18,
+                                    "start": 1442,
+                                    "end": 1443,
+                                    "file_name": "pendulum_closed_loop.mo"
+                                  },
+                                  "token_number": 135,
+                                  "token_type": 64
+                                },
+                                "subs": null
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "rhs": {
+                  "Binary": {
+                    "op": {
+                      "Mul": {
+                        "text": "*",
+                        "location": {
+                          "start_line": 39,
+                          "start_column": 23,
+                          "end_line": 39,
+                          "end_column": 24,
+                          "start": 1448,
+                          "end": 1449,
+                          "file_name": "pendulum_closed_loop.mo"
+                        },
+                        "token_number": 138,
+                        "token_type": 80
+                      }
+                    },
+                    "lhs": {
+                      "ComponentReference": {
+                        "local": false,
+                        "parts": [
+                          {
+                            "ident": {
+                              "text": "Ki",
+                              "location": {
+                                "start_line": 39,
+                                "start_column": 21,
+                                "end_line": 39,
+                                "end_column": 23,
+                                "start": 1446,
+                                "end": 1448,
+                                "file_name": "pendulum_closed_loop.mo"
+                              },
+                              "token_number": 137,
+                              "token_type": 64
+                            },
+                            "subs": null
+                          }
+                        ]
+                      }
+                    },
+                    "rhs": {
+                      "ComponentReference": {
+                        "local": false,
+                        "parts": [
+                          {
+                            "ident": {
+                              "text": "xi",
+                              "location": {
+                                "start_line": 39,
+                                "start_column": 24,
+                                "end_line": 39,
+                                "end_column": 26,
+                                "start": 1449,
+                                "end": 1451,
+                                "file_name": "pendulum_closed_loop.mo"
+                              },
+                              "token_number": 139,
+                              "token_type": 64
+                            },
+                            "subs": null
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "Binary": {
+                "op": {
+                  "Mul": {
+                    "text": "*",
+                    "location": {
+                      "start_line": 39,
+                      "start_column": 31,
+                      "end_line": 39,
+                      "end_column": 32,
+                      "start": 1456,
+                      "end": 1457,
+                      "file_name": "pendulum_closed_loop.mo"
+                    },
+                    "token_number": 142,
+                    "token_type": 80
+                  }
+                },
+                "lhs": {
+                  "ComponentReference": {
+                    "local": false,
+                    "parts": [
+                      {
+                        "ident": {
+                          "text": "Kd",
+                          "location": {
+                            "start_line": 39,
+                            "start_column": 29,
+                            "end_line": 39,
+                            "end_column": 31,
+                            "start": 1454,
+                            "end": 1456,
+                            "file_name": "pendulum_closed_loop.mo"
+                          },
+                          "token_number": 141,
+                          "token_type": 64
+                        },
+                        "subs": null
+                      }
+                    ]
+                  }
+                },
+                "rhs": {
+                  "ComponentReference": {
+                    "local": false,
+                    "parts": [
+                      {
+                        "ident": {
+                          "text": "omega",
+                          "location": {
+                            "start_line": 39,
+                            "start_column": 32,
+                            "end_line": 39,
+                            "end_column": 37,
+                            "start": 1457,
+                            "end": 1462,
+                            "file_name": "pendulum_closed_loop.mo"
+                          },
+                          "token_number": 143,
+                          "token_type": 64
+                        },
+                        "subs": null
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "Simple": {
+        "lhs": {
+          "FunctionCall": {
+            "comp": {
+              "local": false,
+              "parts": [
+                {
+                  "ident": {
+                    "text": "der",
+                    "location": {
+                      "start_line": 43,
+                      "start_column": 3,
+                      "end_line": 43,
+                      "end_column": 6,
+                      "start": 1530,
+                      "end": 1533,
+                      "file_name": "pendulum_closed_loop.mo"
+                    },
+                    "token_number": 153,
+                    "token_type": 15
+                  },
+                  "subs": null
+                }
+              ]
+            },
+            "args": [
+              {
+                "ComponentReference": {
+                  "local": false,
+                  "parts": [
+                    {
+                      "ident": {
+                        "text": "omega",
+                        "location": {
+                          "start_line": 43,
+                          "start_column": 7,
+                          "end_line": 43,
+                          "end_column": 12,
+                          "start": 1534,
+                          "end": 1539,
+                          "file_name": "pendulum_closed_loop.mo"
+                        },
+                        "token_number": 155,
+                        "token_type": 64
+                      },
+                      "subs": null
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "rhs": {
+          "Binary": {
+            "op": {
+              "Add": {
+                "text": "+",
+                "location": {
+                  "start_line": 43,
+                  "start_column": 54,
+                  "end_line": 43,
+                  "end_column": 55,
+                  "start": 1581,
+                  "end": 1582,
+                  "file_name": "pendulum_closed_loop.mo"
+                },
+                "token_number": 183,
+                "token_type": 90
+              }
+            },
+            "lhs": {
+              "Binary": {
+                "op": {
+                  "Sub": {
+                    "text": "-",
+                    "location": {
+                      "start_line": 43,
+                      "start_column": 34,
+                      "end_line": 43,
+                      "end_column": 35,
+                      "start": 1561,
+                      "end": 1562,
+                      "file_name": "pendulum_closed_loop.mo"
+                    },
+                    "token_number": 169,
+                    "token_type": 91
+                  }
+                },
+                "lhs": {
+                  "Unary": {
+                    "op": {
+                      "Minus": {
+                        "text": "-",
+                        "location": {
+                          "start_line": 43,
+                          "start_column": 16,
+                          "end_line": 43,
+                          "end_column": 17,
+                          "start": 1543,
+                          "end": 1544,
+                          "file_name": "pendulum_closed_loop.mo"
+                        },
+                        "token_number": 158,
+                        "token_type": 91
+                      }
+                    },
+                    "rhs": {
+                      "Binary": {
+                        "op": {
+                          "Mul": {
+                            "text": "*",
+                            "location": {
+                              "start_line": 43,
+                              "start_column": 22,
+                              "end_line": 43,
+                              "end_column": 23,
+                              "start": 1549,
+                              "end": 1550,
+                              "file_name": "pendulum_closed_loop.mo"
+                            },
+                            "token_number": 164,
+                            "token_type": 80
+                          }
+                        },
+                        "lhs": {
+                          "Parenthesized": {
+                            "inner": {
+                              "Binary": {
+                                "op": {
+                                  "Div": {
+                                    "text": "/",
+                                    "location": {
+                                      "start_line": 43,
+                                      "start_column": 19,
+                                      "end_line": 43,
+                                      "end_column": 20,
+                                      "start": 1546,
+                                      "end": 1547,
+                                      "file_name": "pendulum_closed_loop.mo"
+                                    },
+                                    "token_number": 161,
+                                    "token_type": 94
+                                  }
+                                },
+                                "lhs": {
+                                  "ComponentReference": {
+                                    "local": false,
+                                    "parts": [
+                                      {
+                                        "ident": {
+                                          "text": "g",
+                                          "location": {
+                                            "start_line": 43,
+                                            "start_column": 18,
+                                            "end_line": 43,
+                                            "end_column": 19,
+                                            "start": 1545,
+                                            "end": 1546,
+                                            "file_name": "pendulum_closed_loop.mo"
+                                          },
+                                          "token_number": 160,
+                                          "token_type": 64
+                                        },
+                                        "subs": null
+                                      }
+                                    ]
+                                  }
+                                },
+                                "rhs": {
+                                  "ComponentReference": {
+                                    "local": false,
+                                    "parts": [
+                                      {
+                                        "ident": {
+                                          "text": "l",
+                                          "location": {
+                                            "start_line": 43,
+                                            "start_column": 20,
+                                            "end_line": 43,
+                                            "end_column": 21,
+                                            "start": 1547,
+                                            "end": 1548,
+                                            "file_name": "pendulum_closed_loop.mo"
+                                          },
+                                          "token_number": 162,
+                                          "token_type": 64
+                                        },
+                                        "subs": null
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "rhs": {
+                          "FunctionCall": {
+                            "comp": {
+                              "local": false,
+                              "parts": [
+                                {
+                                  "ident": {
+                                    "text": "sin",
+                                    "location": {
+                                      "start_line": 43,
+                                      "start_column": 23,
+                                      "end_line": 43,
+                                      "end_column": 26,
+                                      "start": 1550,
+                                      "end": 1553,
+                                      "file_name": "pendulum_closed_loop.mo"
+                                    },
+                                    "token_number": 165,
+                                    "token_type": 64
+                                  },
+                                  "subs": null
+                                }
+                              ]
+                            },
+                            "args": [
+                              {
+                                "ComponentReference": {
+                                  "local": false,
+                                  "parts": [
+                                    {
+                                      "ident": {
+                                        "text": "theta",
+                                        "location": {
+                                          "start_line": 43,
+                                          "start_column": 27,
+                                          "end_line": 43,
+                                          "end_column": 32,
+                                          "start": 1554,
+                                          "end": 1559,
+                                          "file_name": "pendulum_closed_loop.mo"
+                                        },
+                                        "token_number": 167,
+                                        "token_type": 64
+                                      },
+                                      "subs": null
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "rhs": {
+                  "Binary": {
+                    "op": {
+                      "Mul": {
+                        "text": "*",
+                        "location": {
+                          "start_line": 43,
+                          "start_column": 47,
+                          "end_line": 43,
+                          "end_column": 48,
+                          "start": 1574,
+                          "end": 1575,
+                          "file_name": "pendulum_closed_loop.mo"
+                        },
+                        "token_number": 181,
+                        "token_type": 80
+                      }
+                    },
+                    "lhs": {
+                      "Parenthesized": {
+                        "inner": {
+                          "Binary": {
+                            "op": {
+                              "Div": {
+                                "text": "/",
+                                "location": {
+                                  "start_line": 43,
+                                  "start_column": 38,
+                                  "end_line": 43,
+                                  "end_column": 39,
+                                  "start": 1565,
+                                  "end": 1566,
+                                  "file_name": "pendulum_closed_loop.mo"
+                                },
+                                "token_number": 172,
+                                "token_type": 94
+                              }
+                            },
+                            "lhs": {
+                              "ComponentReference": {
+                                "local": false,
+                                "parts": [
+                                  {
+                                    "ident": {
+                                      "text": "c",
+                                      "location": {
+                                        "start_line": 43,
+                                        "start_column": 37,
+                                        "end_line": 43,
+                                        "end_column": 38,
+                                        "start": 1564,
+                                        "end": 1565,
+                                        "file_name": "pendulum_closed_loop.mo"
+                                      },
+                                      "token_number": 171,
+                                      "token_type": 64
+                                    },
+                                    "subs": null
+                                  }
+                                ]
+                              }
+                            },
+                            "rhs": {
+                              "Parenthesized": {
+                                "inner": {
+                                  "Binary": {
+                                    "op": {
+                                      "Mul": {
+                                        "text": "*",
+                                        "location": {
+                                          "start_line": 43,
+                                          "start_column": 41,
+                                          "end_line": 43,
+                                          "end_column": 42,
+                                          "start": 1568,
+                                          "end": 1569,
+                                          "file_name": "pendulum_closed_loop.mo"
+                                        },
+                                        "token_number": 175,
+                                        "token_type": 80
+                                      }
+                                    },
+                                    "lhs": {
+                                      "ComponentReference": {
+                                        "local": false,
+                                        "parts": [
+                                          {
+                                            "ident": {
+                                              "text": "m",
+                                              "location": {
+                                                "start_line": 43,
+                                                "start_column": 40,
+                                                "end_line": 43,
+                                                "end_column": 41,
+                                                "start": 1567,
+                                                "end": 1568,
+                                                "file_name": "pendulum_closed_loop.mo"
+                                              },
+                                              "token_number": 174,
+                                              "token_type": 64
+                                            },
+                                            "subs": null
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "rhs": {
+                                      "Binary": {
+                                        "op": {
+                                          "Exp": {
+                                            "text": "",
+                                            "location": {
+                                              "start_line": 0,
+                                              "start_column": 0,
+                                              "end_line": 0,
+                                              "end_column": 0,
+                                              "start": 0,
+                                              "end": 0,
+                                              "file_name": ""
+                                            },
+                                            "token_number": 0,
+                                            "token_type": 0
+                                          }
+                                        },
+                                        "lhs": {
+                                          "ComponentReference": {
+                                            "local": false,
+                                            "parts": [
+                                              {
+                                                "ident": {
+                                                  "text": "l",
+                                                  "location": {
+                                                    "start_line": 43,
+                                                    "start_column": 42,
+                                                    "end_line": 43,
+                                                    "end_column": 43,
+                                                    "start": 1569,
+                                                    "end": 1570,
+                                                    "file_name": "pendulum_closed_loop.mo"
+                                                  },
+                                                  "token_number": 176,
+                                                  "token_type": 64
+                                                },
+                                                "subs": null
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "rhs": {
+                                          "Terminal": {
+                                            "terminal_type": "UnsignedInteger",
+                                            "token": {
+                                              "text": "2",
+                                              "location": {
+                                                "start_line": 43,
+                                                "start_column": 44,
+                                                "end_line": 43,
+                                                "end_column": 45,
+                                                "start": 1571,
+                                                "end": 1572,
+                                                "file_name": "pendulum_closed_loop.mo"
+                                              },
+                                              "token_number": 178,
+                                              "token_type": 67
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "rhs": {
+                      "ComponentReference": {
+                        "local": false,
+                        "parts": [
+                          {
+                            "ident": {
+                              "text": "omega",
+                              "location": {
+                                "start_line": 43,
+                                "start_column": 48,
+                                "end_line": 43,
+                                "end_column": 53,
+                                "start": 1575,
+                                "end": 1580,
+                                "file_name": "pendulum_closed_loop.mo"
+                              },
+                              "token_number": 182,
+                              "token_type": 64
+                            },
+                            "subs": null
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "Binary": {
+                "op": {
+                  "Div": {
+                    "text": "/",
+                    "location": {
+                      "start_line": 43,
+                      "start_column": 63,
+                      "end_line": 43,
+                      "end_column": 64,
+                      "start": 1590,
+                      "end": 1591,
+                      "file_name": "pendulum_closed_loop.mo"
+                    },
+                    "token_number": 189,
+                    "token_type": 94
+                  }
+                },
+                "lhs": {
+                  "Parenthesized": {
+                    "inner": {
+                      "Binary": {
+                        "op": {
+                          "Add": {
+                            "text": "+",
+                            "location": {
+                              "start_line": 43,
+                              "start_column": 59,
+                              "end_line": 43,
+                              "end_column": 60,
+                              "start": 1586,
+                              "end": 1587,
+                              "file_name": "pendulum_closed_loop.mo"
+                            },
+                            "token_number": 186,
+                            "token_type": 90
+                          }
+                        },
+                        "lhs": {
+                          "ComponentReference": {
+                            "local": false,
+                            "parts": [
+                              {
+                                "ident": {
+                                  "text": "u",
+                                  "location": {
+                                    "start_line": 43,
+                                    "start_column": 57,
+                                    "end_line": 43,
+                                    "end_column": 58,
+                                    "start": 1584,
+                                    "end": 1585,
+                                    "file_name": "pendulum_closed_loop.mo"
+                                  },
+                                  "token_number": 185,
+                                  "token_type": 64
+                                },
+                                "subs": null
+                              }
+                            ]
+                          }
+                        },
+                        "rhs": {
+                          "ComponentReference": {
+                            "local": false,
+                            "parts": [
+                              {
+                                "ident": {
+                                  "text": "d",
+                                  "location": {
+                                    "start_line": 43,
+                                    "start_column": 61,
+                                    "end_line": 43,
+                                    "end_column": 62,
+                                    "start": 1588,
+                                    "end": 1589,
+                                    "file_name": "pendulum_closed_loop.mo"
+                                  },
+                                  "token_number": 187,
+                                  "token_type": 64
+                                },
+                                "subs": null
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "rhs": {
+                  "Parenthesized": {
+                    "inner": {
+                      "Binary": {
+                        "op": {
+                          "Mul": {
+                            "text": "*",
+                            "location": {
+                              "start_line": 43,
+                              "start_column": 66,
+                              "end_line": 43,
+                              "end_column": 67,
+                              "start": 1593,
+                              "end": 1594,
+                              "file_name": "pendulum_closed_loop.mo"
+                            },
+                            "token_number": 192,
+                            "token_type": 80
+                          }
+                        },
+                        "lhs": {
+                          "ComponentReference": {
+                            "local": false,
+                            "parts": [
+                              {
+                                "ident": {
+                                  "text": "m",
+                                  "location": {
+                                    "start_line": 43,
+                                    "start_column": 65,
+                                    "end_line": 43,
+                                    "end_column": 66,
+                                    "start": 1592,
+                                    "end": 1593,
+                                    "file_name": "pendulum_closed_loop.mo"
+                                  },
+                                  "token_number": 191,
+                                  "token_type": 64
+                                },
+                                "subs": null
+                              }
+                            ]
+                          }
+                        },
+                        "rhs": {
+                          "Binary": {
+                            "op": {
+                              "Exp": {
+                                "text": "",
+                                "location": {
+                                  "start_line": 0,
+                                  "start_column": 0,
+                                  "end_line": 0,
+                                  "end_column": 0,
+                                  "start": 0,
+                                  "end": 0,
+                                  "file_name": ""
+                                },
+                                "token_number": 0,
+                                "token_type": 0
+                              }
+                            },
+                            "lhs": {
+                              "ComponentReference": {
+                                "local": false,
+                                "parts": [
+                                  {
+                                    "ident": {
+                                      "text": "l",
+                                      "location": {
+                                        "start_line": 43,
+                                        "start_column": 67,
+                                        "end_line": 43,
+                                        "end_column": 68,
+                                        "start": 1594,
+                                        "end": 1595,
+                                        "file_name": "pendulum_closed_loop.mo"
+                                      },
+                                      "token_number": 193,
+                                      "token_type": 64
+                                    },
+                                    "subs": null
+                                  }
+                                ]
+                              }
+                            },
+                            "rhs": {
+                              "Terminal": {
+                                "terminal_type": "UnsignedInteger",
+                                "token": {
+                                  "text": "2",
+                                  "location": {
+                                    "start_line": 43,
+                                    "start_column": 69,
+                                    "end_line": 43,
+                                    "end_column": 70,
+                                    "start": 1596,
+                                    "end": 1597,
+                                    "file_name": "pendulum_closed_loop.mo"
+                                  },
+                                  "token_number": 195,
+                                  "token_type": 67
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "fx_init": [],
+  "fz": [],
+  "fm": [],
+  "fr": {},
+  "fc": {}
+}
