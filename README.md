@@ -4,9 +4,10 @@
 
 ## Features
 
-- **Generalizable Model Support**: Reachable sets for linear systems written in Modelica utilizing [RuMoCA](https://rumoca.dev)
+- **Generalizable Model Support**: Reachable sets for systems written in Modelica utilizing [RuMoCA](https://rumoca.dev)
 - **Domain-Specific Analysis**: Reachable sets for Rover, Quadrotor, and Satellite utilizing log-linearized Lie groups
 - **LMI-Based Over-Approximation**: Compute ellipsoidal reachable set over-approximations using Lyapunov theory
+- **Polytopic Uncertainty**: Handle time-varying and uncertain systems via polytopic LMI formulations
 - **Monte Carlo Simulation**: Simulate trajectories with bounded disturbances for validation
 - **Trajectory Planning**: Polynomial trajectory generation for reference tracking
 - **Multiple Backends**: Symbolic (SymPy) and numeric (CasADi) computation engines
@@ -23,7 +24,7 @@ pip install cp_reach
 ### From Source
 
 ```bash
-git clone https://github.com/yourusername/cp_reach.git
+git clone https://github.com/CogniPilot/cp_reach.git
 cd cp_reach
 pip install -e .
 ```
@@ -97,20 +98,20 @@ See [examples/](examples/) for more comprehensive examples.
 
 cp_reach is organized into several modules:
 
-- **`applications`**: Domain-specific modules for satellite, quadrotor, and rover systems
-  - Each includes dynamics models, invariant set computation, and visualization
-- **`dynamics`**: State space representations (CasADi/SymPy backends) and dynamics classification
-- **`geometry`**: Ellipsoid operations, projections, and sampling utilities
-- **`physics`**: Rigid body dynamics, angular acceleration, and SE(2,3) kinematics
-- **`planning`**: Trajectory generation (polynomial paths, waypoint planning)
-- **`plotting`**: Visualization utilities for error bounds, trajectories, and flowpipes
+- **`ir`**: Intermediate representation loading from RuMoCA JSON output
+- **`dynamics`**: Symbolic state space representations and dynamics classification
 - **`reachability`**: Core reachability analysis (LMI solving, simulation workflows)
+- **`plotting`**: Visualization utilities for error bounds, trajectories, and flowpipes
+- **`planning`**: Trajectory generation (polynomial paths, waypoint planning)
+- **`physics`**: Rigid body dynamics, angular acceleration, and SE(2,3) kinematics
+- **`applications`**: Domain-specific modules for satellite, quadrotor, and rover systems
 
+For detailed architecture information, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Examples
 
 See the [examples/](examples/) directory for:
-- **Basic**: Linear and nonlinear Modelica model imports
+- **General**: Linear and nonlinear Modelica model imports with structured workflow
 - **Satellite**: HCW, TH-LTV, and SE(2,3) reachability analysis
 - **Quadrotor**: Log-linearized error dynamics and flowpipe computation
 - **Rover**: EMI disturbance and rollover analysis
@@ -123,7 +124,8 @@ See the [examples/](examples/) directory for:
 - **Reachability Analysis**: LMI-based ellipsoidal over-approximation
 
 ### Nonlinear Systems (Modelica)
-- Coming soon
+- **Polytopic LMI**: Jacobian bounds over state ranges for nonlinear dynamics
+- **Structured Workflow**: Systematic analysis via `SymbolicStateSpace`
 
 ### Domain-Specific Modules
 
@@ -139,6 +141,15 @@ See the [examples/](examples/) directory for:
 - EMI disturbance analysis
 - Rollover reachability
 
+## Testing
+
+Run the test suite with pytest:
+
+```bash
+pytest tests/ -v
+```
+
+The test suite covers LMI solvers, dynamics classification, IR loading, and integration workflows.
 
 ## License
 
