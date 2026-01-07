@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 try:
     import casadi as ca  # type: ignore
@@ -556,9 +559,9 @@ class SymbolicStateSpace:
                 else:
                     C_inv = C_sym.pinv()
                 E_sym = (E_sym * C_inv).simplify() if hasattr(E_sym, "simplify") else E_sym * C_inv
-            except Exception:
+            except Exception as e:
                 # If inversion fails, keep state-based Jacobian
-                pass
+                logger.debug(f"Could not invert output matrix C for algebraic substitution: {e}")
 
         # If no free variables remain, return numeric matrix
         free_vars = E_sym.free_symbols - set(self.param_symbols) - set(self.state_symbols) - set(self.input_symbols)

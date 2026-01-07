@@ -1,14 +1,12 @@
+import logging
 import numpy as np
 import cvxpy as cp
 import control
-import itertools
 import scipy
-# from cp_reach.lie.SE23 import *
-# from cp_reach.lie.se3 import *
 import cyecca.lie as lie
-# from cyecca.lie.group_se23 import se23, SE23Quat
-# from cyecca.lie.group_se23 import SE23Quat
 import casadi as ca
+
+logger = logging.getLogger(__name__)
 
 def se23_solve_control(x0, mode):
     """
@@ -213,7 +211,7 @@ def SE23LMIs(alpha, A_list, verbosity=0):
                 break
         except Exception as e:
             if verbosity > 0:
-                print(f"Solver {solver} failed: {e}")
+                logger.debug(f"Solver {solver} failed: {e}")
             continue
 
     if solved:
@@ -228,7 +226,7 @@ def SE23LMIs(alpha, A_list, verbosity=0):
         }
     else:
         if verbosity > 0:
-            print(f"All solvers failed at alpha = {alpha:.4f}")
+            logger.warning(f"All solvers failed at alpha = {alpha:.4f}")
 
         return {
             'P': None,
@@ -305,7 +303,7 @@ def SE23LMIs2(alpha, A_list, B1, B2, w1_max, w2_max, verbosity=0, solver=None):
 
     except Exception as e:
         if verbosity > 0:
-            print(f"Solver failed at alpha = {alpha:.4f}: {e}")
+            logger.debug(f"Solver failed at alpha = {alpha:.4f}: {e}")
 
         return {
             'P': None,
@@ -315,7 +313,7 @@ def SE23LMIs2(alpha, A_list, B1, B2, w1_max, w2_max, verbosity=0, solver=None):
             'alpha': alpha,
             'prob': None,
         }
-    
+
 def SE23LMIs3(alpha, A_list, B1, B2, B3, w1_max, w2_max, w3_max,
               Bu=None, verbosity=0, solver=None):
     """
@@ -428,7 +426,7 @@ def SE23LMIs3(alpha, A_list, B1, B2, B3, w1_max, w2_max, w3_max,
 
     except Exception as e:
         if verbosity > 0:
-            print(f"Solver failed at alpha = {alpha:.6g}: {e}")
+            logger.debug(f"Solver failed at alpha = {alpha:.6g}: {e}")
         return {
             'P': None,
             'mu1': None,
@@ -527,7 +525,7 @@ def solve_se23_invariant_set(ax_range, ay_range, az_range,
 
     # Step 4: Estimate maximum real part of eigenvalues for α search
     if verbosity > 0:
-        print("Estimating decay rate α from closed-loop eigenvalues...")
+        logger.info("Estimating decay rate α from closed-loop eigenvalues...")
 
     # Get the most unstable eigenvalue (largest real part) across all operating points
     max_real_parts = [np.max(np.real(eigs)) for eigs in eigenvalues]
@@ -553,8 +551,7 @@ def solve_se23_invariant_set(ax_range, ay_range, az_range,
         raise RuntimeError(f"Lyapunov LMI failed at α = {alpha_opt:.4f}")
 
     if verbosity > 0:
-        print(f"[✓] Lyapunov matrix found:")
-        print(f"    α = {alpha_opt:.4f}, μ₁ = {sol['mu1']:.4e}, total cost = {sol['cost']:.4e}")
+        logger.info(f"Lyapunov matrix found: α = {alpha_opt:.4f}, μ₁ = {sol['mu1']:.4e}, cost = {sol['cost']:.4e}")
 
     return sol
 
@@ -674,9 +671,7 @@ def solve_se23_invariant_set_log_control(ref_acc, Kp, Kd, Kpq, omega_dist, accel
     A_matrices.append(np.array(A))
     eigenvalues.append(np.linalg.eigvals(A))
 
-    # print(eigenvalues)
     alpha_upper = -np.real(np.max(eigenvalues))  # Most unstable real eigenvalue
-
 
     # Line search to find alpha that minimizes cost (omega_dist mu1**2 + gravity_err mu2**2)
     alpha_opt = scipy.optimize.fminbound(
@@ -789,9 +784,7 @@ def solve_se23_invariant_set_log_control_simple(ref_acc, Kp, Kd, Kpq, accel_dist
     A_matrices.append(np.array(A))
     eigenvalues.append(np.linalg.eigvals(A))
 
-    # print(eigenvalues)
     alpha_upper = -np.real(np.max(eigenvalues))  # Most unstable real eigenvalue
-
 
     # Line search to find alpha that minimizes cost (omega_dist mu1**2 + gravity_err mu2**2)
     alpha_opt = scipy.optimize.fminbound(

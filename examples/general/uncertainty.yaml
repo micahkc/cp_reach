@@ -1,0 +1,12 @@
+# Uncertainty specification for reachability analysis
+#
+# Currently only disturbance bounds are used by the LMI solver.
+# Parameter uncertainty and initial conditions are parsed but not
+# yet implemented in the reachability analysis.
+
+disturbances:
+  # Bounded disturbance force on the plant
+  d:
+    type: bounded
+    bound: 1.0
+    norm: inf

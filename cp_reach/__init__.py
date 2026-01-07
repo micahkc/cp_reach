@@ -1,4 +1,4 @@
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __author__ = "Micah Condie"
 __license__ = "Apache-2.0"
 
@@ -11,7 +11,6 @@ __all__ = [
     "config",
     "development",
     "dynamics",
-    "geometry",
     "ir",
     "physics",
     "planning",
@@ -23,7 +22,6 @@ _SUBMODULES = {
     "config": "cp_reach.config",
     "development": "cp_reach.development",
     "dynamics": "cp_reach.dynamics",
-    "geometry": "cp_reach.geometry",
     "ir": "cp_reach.ir",
     "physics": "cp_reach.physics",
     "planning": "cp_reach.planning",

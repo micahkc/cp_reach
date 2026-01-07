@@ -1,24 +1,9 @@
+import logging
 import numpy as np
 import cvxpy as cp
-import control
-import itertools
 import scipy
 
-# def omega_solve_control_gain(omega1, omega2, omega3):
-#     # A = np.zeros((3,3))
-#     A =  -np.array([[0, -omega3, omega2],
-#                     [omega3, 0, -omega1],
-#                     [-omega2, omega1, 0]])
-#     B = np.array([[1, 0, 0],
-#                   [0, 1, 0],
-#                   [0, 0, 1]]) # control alpha1,2,3
-#     Q = 10*np.eye(3)  # penalize state
-#     R = 1*np.eye(3)  # penalize input
-#     K, _, _ = control.lqr(A, B, Q, R) 
-#     #print('K', K)
-#     K = -K # rescale K, set negative feedback sign
-#     BK = B@K
-#     return B, K, BK , A+B@K
+logger = logging.getLogger(__name__)
 
 def omegaLMIs(alpha, A_list, B, verbosity=0):
     """
@@ -73,11 +58,11 @@ def omegaLMIs(alpha, A_list, B, verbosity=0):
                 break
         except Exception as e:
             if verbosity > 0:
-                print(f"Solver {solver} failed: {e}")
+                logger.debug(f"Solver {solver} failed: {e}")
             continue
 
     if not solved:
-        print(f"All solvers failed for omegaLMIs")
+        logger.warning("All solvers failed for omegaLMIs")
         cost = np.inf
         P_value = None
 
@@ -107,7 +92,7 @@ def solve_inv_set(Kdq, verbosity=0):
     alpha_upper = -np.real(np.max(eig_list))  # most unstable eigenvalue (smallest real part)
 
     if verbosity > 0:
-        print("Performing line search for optimal alpha...")
+        logger.info("Performing line search for optimal alpha...")
 
     # Minimize cost over alpha in the range (very small, conservative upper bound)
     alpha_opt = scipy.optimize.fminbound(
@@ -120,14 +105,14 @@ def solve_inv_set(Kdq, verbosity=0):
 
 
     if sol['prob'] is None or sol['prob'].status not in ['optimal', 'optimal_inaccurate']:
-        print(sol)
+        logger.error(f"Optimization failed: {sol}")
         raise RuntimeError("Optimization failed")
 
     if sol['P'] is None:
         raise RuntimeError("Optimization failed: P matrix is None")
 
     if verbosity > 0:
-        print(f"Alpha: {alpha_opt:.4f}, mu1: {sol['mu1']}, Cost: {sol['cost']:.4e}")
+        logger.info(f"Alpha: {alpha_opt:.4f}, mu1: {sol['mu1']}, Cost: {sol['cost']:.4e}")
     return sol
 
 def obtain_points(M, n=30):

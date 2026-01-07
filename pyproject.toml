@@ -1,6 +1,6 @@
 [project]
 name = "cp_reach"
-version = "0.1.0"
+version = "0.2.0"
 description = "Reachability Analysis Library for Cyber-Physical Systems"
 authors = [{ name = "Micah Condie", email = "mkcondie01@gmail.com" }]
 readme = "README.md"
@@ -41,9 +41,9 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/cp_reach"
-Repository = "https://github.com/yourusername/cp_reach"
-Issues = "https://github.com/yourusername/cp_reach/issues"
+Homepage = "https://github.com/micahkc/cp_reach"
+Repository = "https://github.com/micahkc/cp_reach"
+Issues = "https://github.com/micahkc/cp_reach/issues"
 
 [build-system]
 requires = ["setuptools>=61.0"]

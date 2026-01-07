@@ -1,14 +1,12 @@
+import logging
 import numpy as np
 import cvxpy as cp
 import control
-import itertools
 import scipy
-# from cp_reach.lie.SE23 import *
-# from cp_reach.lie.se3 import *
 import cyecca.lie as lie
-# from cyecca.lie.group_se23 import se23, SE23Quat
-# from cyecca.lie.group_se23 import SE23Quat
 import casadi as ca
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -75,7 +73,7 @@ def SE23LMIs(alpha, A_list, B1, B2, w1_max, w2_max, verbosity=0, solver=None):
 
     except Exception as e:
         if verbosity > 0:
-            print(f"Solver failed at alpha = {alpha:.4f}: {e}")
+            logger.debug(f"Solver failed at alpha = {alpha:.4f}: {e}")
 
         return {
             'P': None,
@@ -138,9 +136,7 @@ def solve_se23_invariant_set(ref_acc, Kp, Kd, Kpq, Kdq, omega_dist, gravity_err)
         [0, 0, 0, 0, 0, 1],
     ])
 
-    # Gain matrix K = np.array([Kp Kd 0
-    #                           0 0  Kp])
-    # print(Kp,Kd,Kpq,Kdq)
+    # Gain matrix K = [Kp Kd 0; 0 0 Kp]
     K = np.array([
         [Kp,0,0,Kd,0,0,0,0,0,0,0,0],
         [0,Kp,0,0,Kd,0,0,0,0,0,0,0],
@@ -184,13 +180,9 @@ def solve_se23_invariant_set(ref_acc, Kp, Kd, Kpq, Kdq, omega_dist, gravity_err)
 
     # We want this in the form x dot = (A+B0)x + B1 dist1 + B2 dist2
     # top left of A is: -ad_nbar + C - B0K
-    print(ref_acc)
     vec = np.array([0, 0, 0, ref_acc[0], ref_acc[1], ref_acc[2], 0, 0, 0])
     xi = lie.se23.elem(ca.DM(vec)) # Lie Algebra
     ad = ca.DM(lie.se23.adjoint(xi))
-
-    # ad = ca.DM(SE23Dcm.ad_matrix(vec)).full()
-    # print(ad)
 
     adC = np.zeros((9,9))
     adC[0, 3] = 1

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Callable, Iterable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
@@ -8,7 +9,8 @@ from cp_reach.dynamics.state_space import SymbolicStateSpace, extract_symbolic_s
 from cp_reach.dynamics.state_space import casadi_linearize as _casadi_linearize
 from cp_reach.planning import Trajectory
 from cp_reach.reachability.lmi import solve_disturbance_LMI
-import inspect
+
+logger = logging.getLogger(__name__)
 
 
 def _as_u_profile(u_ff: Union[np.ndarray, Callable[[float], np.ndarray]], t: np.ndarray, m: int) -> np.ndarray:
@@ -233,8 +235,8 @@ def compute_reachable_set(
                 radii.append(r)
             sol["bounds_lower"] = -np.array(radii)
             sol["bounds_upper"] = np.array(radii)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Could not compute axis-aligned bounds: {e}")
     return sol
 
 

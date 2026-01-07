@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Ellipse
 from cp_reach.physics.rigid_body import project_ellipsoid_subspace, exp_map
 
 def plot2DInvSet(points, inv_points, ax1):
@@ -214,3 +215,74 @@ def plot_flowpipes(nom, flowpipes, ax, axis='xy'):
     handles, labels = ax.get_legend_handles_labels()
     if labels:
         ax.legend(handles, labels, fontsize=12, loc='upper left')
+
+
+def plot_ellipse(
+    M: np.ndarray,
+    ax,
+    center: tuple[float, float] = (0, 0),
+    label: str = "",
+    color: str = 'blue',
+    alpha: float = 0.3,
+    fill: bool = True,
+    linestyle: str = '-',
+    linewidth: float = 1.5,
+):
+    """
+    Plot an ellipse defined by x^T M x = 1 on a matplotlib axis.
+
+    Parameters
+    ----------
+    M : np.ndarray
+        Positive definite 2x2 matrix defining the ellipse {x : x^T M x = 1}.
+    ax : matplotlib.axes.Axes
+        Axis to draw on.
+    center : tuple, optional
+        Center of the ellipse (x, y). Default (0, 0).
+    label : str, optional
+        Legend label for the ellipse.
+    color : str, optional
+        Color of the ellipse. Default 'blue'.
+    alpha : float, optional
+        Transparency (0-1). Default 0.3.
+    fill : bool, optional
+        Whether to fill the ellipse. Default True.
+    linestyle : str, optional
+        Line style for the ellipse boundary. Default '-'.
+    linewidth : float, optional
+        Line width for the ellipse boundary. Default 1.5.
+
+    Returns
+    -------
+    matplotlib.patches.Ellipse
+        The ellipse patch added to the axis.
+
+    Notes
+    -----
+    The ellipse {x : x^T M x = 1} has semi-axes aligned with the eigenvectors
+    of M, with lengths 1/sqrt(λ_i) where λ_i are the eigenvalues.
+    """
+    M = np.asarray(M, dtype=float)
+    eigvals, eigvecs = np.linalg.eig(M)
+
+    # Semi-axis lengths: 1/sqrt(eigenvalue)
+    width = 2.0 / np.sqrt(eigvals[0])
+    height = 2.0 / np.sqrt(eigvals[1])
+
+    # Rotation angle from first eigenvector
+    angle = np.degrees(np.arctan2(eigvecs[1, 0], eigvecs[0, 0]))
+
+    ellipse = Ellipse(
+        xy=center,
+        width=width,
+        height=height,
+        angle=angle,
+        fill=fill,
+        alpha=alpha,
+        label=label,
+        color=color,
+        linestyle=linestyle,
+        linewidth=linewidth,
+    )
+    ax.add_artist(ellipse)
+    return ellipse

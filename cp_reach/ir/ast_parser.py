@@ -14,9 +14,12 @@ For example:
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 import sympy as sp
+
+logger = logging.getLogger(__name__)
 
 
 def ast_to_sympy(
@@ -129,8 +132,9 @@ def _parse_terminal(
             if "." in text or "e" in text.lower():
                 return sp.Float(text)
             return sp.Integer(text)
-        except (ValueError, TypeError):
-            pass
+        except (ValueError, TypeError) as e:
+            logger.debug(f"Could not parse numeric literal '{text}': {e}")
+            # Fall through to treat as symbol
 
     # Check for boolean literals
     if terminal_type == "Boolean" or text.lower() in ("true", "false"):
