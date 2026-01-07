@@ -611,6 +611,193 @@ class SymbolicStateSpace:
             return F_func()
         return F_sym
 
+    def get_error_dynamics(
+        self,
+        disturbance_inputs: Optional[list[str]] = None,
+    ):
+        """
+        Compute symbolic error dynamics expression.
+
+        For a system ẋ = f(x, u, d) tracking reference x_ref, the error is
+        e = x - x_ref and the error dynamics are:
+
+            ė = ẋ - ẋ_ref = f(x, u, d) - f(x_ref, u_nom, 0)
+
+        Assuming perfect feedforward cancels the nominal dynamics at x_ref,
+        this simplifies to:
+
+            ė = f(x_ref + e, u, d) - f(x_ref, u_nom, 0)
+
+        For linear systems: ė = A*e + B_d*d  (A, B_d constant)
+        For nonlinear systems: ė = J(x)*e + B_d*d  (J varies with state)
+
+        This method returns the symbolic expression for the error dynamics,
+        which includes both the state-dependent Jacobian term and the
+        disturbance input term.
+
+        Parameters
+        ----------
+        disturbance_inputs : list[str], optional
+            Names of inputs that are disturbances (cannot be cancelled by
+            feedforward). If None, treats all inputs as disturbances.
+
+        Returns
+        -------
+        dict
+            Dictionary containing:
+            - 'J': Jacobian matrix ∂f/∂x (symbolic, may depend on state)
+            - 'B_d': Disturbance input matrix ∂f/∂d (symbolic)
+            - 'f_nominal': Nominal dynamics f(x, u, 0)
+            - 'f_full': Full dynamics f(x, u, d)
+            - 'disturbance_symbols': List of disturbance symbols
+
+        Examples
+        --------
+        >>> ss = ir_to_symbolic_statespace(ir)
+        >>> err = ss.get_error_dynamics(disturbance_inputs=['d'])
+        >>> J = err['J']  # Jacobian (may contain sin(theta) etc.)
+        >>> B_d = err['B_d']  # Disturbance matrix
+        >>> # Check if J is constant (linear) or state-dependent (nonlinear)
+        """
+        try:
+            import sympy as sp
+        except ImportError:
+            raise ImportError("sympy is required")
+
+        # Full dynamics: ẋ = f + Bu
+        full_dynamics = self.f + self.Bu
+
+        # Identify disturbance symbols
+        input_names = [str(s) for s in self.input_symbols]
+        if disturbance_inputs is None:
+            dist_symbols = list(self.input_symbols)
+        else:
+            dist_symbols = []
+            for name in disturbance_inputs:
+                if name not in input_names:
+                    raise ValueError(
+                        f"Disturbance input '{name}' not found in inputs {input_names}"
+                    )
+                idx = input_names.index(name)
+                dist_symbols.append(self.input_symbols[idx])
+
+        # Nominal dynamics: set disturbances to zero
+        nominal_subs = {d_sym: 0 for d_sym in dist_symbols}
+        nominal_dynamics = full_dynamics.subs(nominal_subs)
+
+        # Jacobian of nominal dynamics w.r.t. states
+        # This is J(x) in ė = J(x)*e + B_d*d
+        J = nominal_dynamics.jacobian(self.state_symbols)
+
+        # Disturbance input matrix: ∂f/∂d
+        B_d = full_dynamics.jacobian(dist_symbols)
+
+        return {
+            'J': J,
+            'B_d': B_d,
+            'f_nominal': nominal_dynamics,
+            'f_full': full_dynamics,
+            'disturbance_symbols': dist_symbols,
+        }
+
+    def error_dynamics_are_linear(
+        self,
+        disturbance_inputs: Optional[list[str]] = None,
+    ) -> bool:
+        """
+        Check if error dynamics are linear (constant Jacobian).
+
+        The error dynamics ė = J(x)*e + B_d*d are linear if and only if
+        the Jacobian J = ∂f/∂x does not depend on the state x.
+
+        Parameters
+        ----------
+        disturbance_inputs : list[str], optional
+            Names of inputs that are disturbances.
+
+        Returns
+        -------
+        bool
+            True if J is constant (linear error dynamics),
+            False if J depends on state (nonlinear error dynamics)
+        """
+        try:
+            import sympy as sp
+        except ImportError:
+            raise ImportError("sympy is required")
+
+        err = self.get_error_dynamics(disturbance_inputs=disturbance_inputs)
+        J = err['J']
+
+        # Substitute parameters
+        param_vals = self.param_defaults or {}
+        param_subs = {sym: param_vals.get(str(sym), sym) for sym in self.param_symbols}
+        J_sub = J.subs(param_subs)
+
+        # Check if any element of J depends on state variables
+        state_set = set(self.state_symbols)
+        for elem in J_sub:
+            if elem.free_symbols & state_set:
+                return False
+
+        return True
+
+    def linearize_error_dynamics(
+        self,
+        disturbance_inputs: Optional[list[str]] = None,
+        params: Optional[Dict[str, float]] = None,
+    ) -> tuple:
+        """
+        Extract A and B_d matrices from error dynamics.
+
+        This evaluates the error dynamics Jacobians at equilibrium (x=0, u=0).
+        For linear systems, the result is exact.
+        For nonlinear systems, this gives the linearization at equilibrium.
+
+        Parameters
+        ----------
+        disturbance_inputs : list[str], optional
+            Names of inputs that are disturbances.
+        params : dict, optional
+            Parameter values. If None, uses defaults.
+
+        Returns
+        -------
+        tuple[np.ndarray, np.ndarray]
+            (A, B_d) matrices where:
+            - A: State Jacobian of nominal dynamics (n x n)
+            - B_d: Disturbance input matrix (n x m_dist)
+        """
+        import numpy as np
+
+        # Get symbolic error dynamics
+        err = self.get_error_dynamics(disturbance_inputs=disturbance_inputs)
+        J_sym = err['J']
+        B_d_sym = err['B_d']
+
+        # Substitute parameters and evaluate at equilibrium
+        param_vals = {**self.param_defaults, **(params or {})}
+        subs_dict = {sym: param_vals[str(sym)] for sym in self.param_symbols if str(sym) in param_vals}
+
+        # Evaluate at zero state and zero input
+        for xi in self.state_symbols:
+            subs_dict[xi] = 0
+        for ui in self.input_symbols:
+            subs_dict[ui] = 0
+
+        A = np.array(J_sym.subs(subs_dict)).astype(float)
+        B_d = np.array(B_d_sym.subs(subs_dict)).astype(float)
+
+        return A, B_d
+
+    def get_input_names(self) -> list[str]:
+        """Return list of input names as strings."""
+        return [str(s) for s in self.input_symbols]
+
+    def get_state_names(self) -> list[str]:
+        """Return list of state names as strings."""
+        return [str(s) for s in self.state_symbols]
+
 
 def extract_symbolic_statespace(
     sympy_backend,

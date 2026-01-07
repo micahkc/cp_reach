@@ -450,3 +450,195 @@ def plot_flowpipe(
     axes[-1].set_xlabel("time")
     fig.tight_layout()
     return fig, axes
+
+
+# --- IR-based workflow (no cyecca dependency) ----------------------------------
+
+
+class ModelicaIRModel:
+    """
+    Lightweight wrapper around IR-loaded model with CP_Reach-friendly accessors.
+
+    This is the IR-based equivalent of ModelicaSympyModel, providing the same
+    interface but loading from Rumoca DAE JSON instead of cyecca backends.
+    """
+
+    def __init__(self, ir, ss: SymbolicStateSpace):
+        self.ir = ir
+        self.symbolic = ss
+        self.states = ir.get_state_names()
+        self.inputs = ir.get_input_names()
+        self.parameters = ir.get_param_defaults()
+
+
+def ir_load(
+    ir_path: str,
+    output_names: Optional[List[str]] = None,
+    simplify: bool = True,
+) -> ModelicaIRModel:
+    """
+    Load a Rumoca DAE IR JSON file and wrap as ModelicaIRModel.
+
+    This is the IR-based equivalent of sympy_load(), providing the same
+    interface for use with compute_reachable_set() and other workflows.
+
+    Parameters
+    ----------
+    ir_path : str
+        Path to the Rumoca DAE IR JSON file
+    output_names : list[str], optional
+        Algebraic variables to use as outputs (for error dynamics)
+    simplify : bool, default=True
+        Whether to simplify symbolic expressions
+
+    Returns
+    -------
+    ModelicaIRModel
+        Wrapped model suitable for reachability analysis
+
+    Examples
+    --------
+    >>> from cp_reach.reachability import ir_load, compute_reachable_set
+    >>> model = ir_load("closed_loop.json", output_names=["e", "ev"])
+    >>> sol = compute_reachable_set(model, method="lmi", dynamics="error")
+    """
+    from cp_reach.ir.loader import DaeIR
+    from cp_reach.ir.state_space import ir_to_symbolic_statespace
+
+    ir = DaeIR.from_json(ir_path)
+    ss = ir_to_symbolic_statespace(ir, output_names=output_names, simplify=simplify)
+    return ModelicaIRModel(ir=ir, ss=ss)
+
+
+def analyze(
+    ir_path: str,
+    uncertainty_path: Optional[str] = None,
+    query_path: Optional[str] = None,
+    output_dir: Optional[str] = None,
+) -> dict:
+    """
+    High-level analysis function using IR + YAML configuration.
+
+    This is the main entry point for the structured workflow:
+    1. Load DAE IR from Rumoca
+    2. Load uncertainty specification from YAML
+    3. Load query specification from YAML
+    4. Run reachability analysis
+    5. Save results
+
+    Parameters
+    ----------
+    ir_path : str
+        Path to Rumoca DAE IR JSON file
+    uncertainty_path : str, optional
+        Path to uncertainty.yaml (uses defaults if not provided)
+    query_path : str, optional
+        Path to reach_query.yaml (uses defaults if not provided)
+    output_dir : str, optional
+        Directory to save results (plots, certificates)
+
+    Returns
+    -------
+    dict
+        Analysis results including bounds, certificate, etc.
+
+    Examples
+    --------
+    >>> from cp_reach.reachability import analyze
+    >>> result = analyze(
+    ...     ir_path="closed_loop.json",
+    ...     uncertainty_path="uncertainty.yaml",
+    ...     query_path="reach_query.yaml",
+    ...     output_dir="results/",
+    ... )
+    """
+    from cp_reach.ir.loader import DaeIR
+    from cp_reach.ir.state_space import ir_to_symbolic_statespace
+    from cp_reach.config.uncertainty import UncertaintySpec
+    from cp_reach.config.query import ReachQuery
+    from pathlib import Path
+    import json
+
+    # Load IR
+    ir = DaeIR.from_json(ir_path)
+
+    # Load uncertainty (or use defaults)
+    if uncertainty_path:
+        uncertainty = UncertaintySpec.from_yaml(uncertainty_path)
+    else:
+        uncertainty = UncertaintySpec()
+
+    # Load query (or use defaults)
+    if query_path:
+        query = ReachQuery.from_yaml(query_path)
+    else:
+        query = ReachQuery()
+
+    # Validate
+    unc_warnings = uncertainty.validate_against_ir(ir)
+    query_warnings = query.validate_against_ir(ir)
+
+    if unc_warnings:
+        import warnings
+        for w in unc_warnings:
+            warnings.warn(w)
+
+    if query_warnings:
+        import warnings
+        for w in query_warnings:
+            warnings.warn(w)
+
+    # Convert to state space
+    ss = ir_to_symbolic_statespace(
+        ir,
+        output_names=query.outputs if query.outputs else None,
+        simplify=True,
+    )
+
+    # Get disturbance bound
+    dist_bound = 1.0
+    if query.dist_inputs:
+        dist_bound = max(uncertainty.get_dist_bound(name) for name in query.dist_inputs)
+
+    # Compute reachable set
+    # Create a minimal wrapper for compute_reachable_set
+    class _ModelWrapper:
+        def __init__(self, ss, inputs):
+            self.symbolic = ss
+            self.inputs = inputs
+
+    model_wrapper = _ModelWrapper(ss, ir.get_input_names())
+
+    result = compute_reachable_set(
+        model_wrapper,
+        method="lmi",
+        dynamics=query.dynamics,
+        dist_bound=dist_bound,
+        alpha_grid=query.alpha_search.to_grid(),
+        dist_input=query.dist_inputs if query.dist_inputs else None,
+    )
+
+    # Add metadata
+    result["model_name"] = ir.model_name
+    result["query_type"] = query.type
+    result["dynamics"] = query.dynamics
+
+    # Save results if output directory provided
+    if output_dir:
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+
+        # Save certificate as JSON
+        if query.output_format.json:
+            cert_data = {
+                "model_name": ir.model_name,
+                "status": result.get("status", "unknown"),
+                "alpha": float(result.get("alpha", 0)),
+                "mu": float(result["mu"][0]) if "mu" in result else None,
+                "bounds_upper": result.get("bounds_upper", []).tolist() if "bounds_upper" in result else None,
+                "bounds_lower": result.get("bounds_lower", []).tolist() if "bounds_lower" in result else None,
+            }
+            with open(output_path / "certificate.json", "w") as f:
+                json.dump(cert_data, f, indent=2)
+
+    return result

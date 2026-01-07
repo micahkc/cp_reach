@@ -8,9 +8,11 @@ import importlib
 from typing import Any
 
 __all__ = [
-    "applications",
+    "config",
+    "development",
     "dynamics",
     "geometry",
+    "ir",
     "physics",
     "planning",
     "plotting",
@@ -18,9 +20,11 @@ __all__ = [
 ]
 
 _SUBMODULES = {
-    "applications": "cp_reach.applications",
+    "config": "cp_reach.config",
+    "development": "cp_reach.development",
     "dynamics": "cp_reach.dynamics",
     "geometry": "cp_reach.geometry",
+    "ir": "cp_reach.ir",
     "physics": "cp_reach.physics",
     "planning": "cp_reach.planning",
     "plotting": "cp_reach.plotting",

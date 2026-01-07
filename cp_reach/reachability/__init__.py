@@ -8,6 +8,9 @@ from .workflows import (
     plot_grouped,
     compute_reachable_set,
     plot_flowpipe,
+    ir_load,
+    analyze,
+    ModelicaIRModel,
 )
 
 __all__ = [
@@ -19,4 +22,7 @@ __all__ = [
     "plot_grouped",
     "compute_reachable_set",
     "plot_flowpipe",
+    "ir_load",
+    "analyze",
+    "ModelicaIRModel",
 ]
