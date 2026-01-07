@@ -41,58 +41,41 @@ The library requires:
 
 ## Quick Start
 
-Here's a simple example computing reachable sets for a mass-spring-damper system from Modelica:
+Here's a simple example computing reachable sets for a closed-loop system from Modelica:
 
 ```python
 import numpy as np
-from cp_reach.reachability import (
-    sympy_load,
-    casadi_load,
-    simulate_dist,
-    compute_reachable_set,
-    plot_flowpipe,
-)
+import rumoca
+from cp_reach.ir import DaeIR, ir_to_symbolic_statespace
+from cp_reach.reachability import solve_disturbance_LMI
 
-# Load Modelica model with SymPy backend
-model_sympy = sympy_load("MassSpringPD.mo", output_names=["e", "ev"])
+# Compile Modelica model with RuMoCA
+result = rumoca.compile("ClosedLoop.mo", model="ClosedLoop")
+json_str = result.to_base_modelica_json()
 
-# Load CasADi backend for simulation
-model_casadi = casadi_load("MassSpringPD.mo")
+# Load IR and convert to symbolic state space
+ir = DaeIR.from_json_str(json_str)
+ss = ir_to_symbolic_statespace(ir)
 
-# Define initial conditions and disturbance bound
-x0 = {"x": 1, "x_ref": 1}
-dist_bound = 1.0
+# Check if error dynamics are linear
+disturbance_inputs = ['d']
+if ss.error_dynamics_are_linear(disturbance_inputs=disturbance_inputs):
+    # Extract A and B_d matrices
+    A, B_d = ss.linearize_error_dynamics(disturbance_inputs=disturbance_inputs)
 
-# Simulate nominal trajectory and Monte Carlo trials
-nom_res, mc_res = simulate_dist(
-    model_casadi,
-    x0=x0,
-    dist_bound=dist_bound,
-    dist_input=["d"],
-    num_sims=100,
-)
+    # Solve LMI for reachable set bounds
+    sol = solve_disturbance_LMI(A_list=[A], B=B_d, w_max=1.0)
 
-# Compute ellipsoidal reachable set bounds via LMI
-sol = compute_reachable_set(
-    model_sympy,
-    method="lmi",
-    dynamics="error",
-    dist_input=["d"],
-    dist_bound=dist_bound,
-    alpha_grid=np.logspace(-4, 1, 40),
-)
+    # Compute per-state bounds from ellipsoid
+    P = np.array(sol["P"])
+    P_inv = np.linalg.inv(P)
+    mu = float(np.max(sol["mu"]))
+    bounds = np.sqrt(mu) * np.sqrt(np.diag(P_inv))
 
-# Visualize flowpipe with bounds
-plot_flowpipe(
-    nom_res,
-    mc_res,
-    groups=[["x"], ["v"]],
-    state_names=model_casadi.state_names,
-    error_fn=lambda t: sol["bounds_upper"],
-)
+    print(f"Reachable set bounds: {bounds}")
 ```
 
-See [examples/](examples/) for more comprehensive examples.
+See [examples/](examples/) for more comprehensive examples including Monte Carlo simulation and visualization.
 
 ## Architecture
 
