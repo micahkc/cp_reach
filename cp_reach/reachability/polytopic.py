@@ -20,39 +20,44 @@ from typing import Optional
 
 def polytopic_jacobians(
     J_sym: sp.Matrix,
-    theta_ref_vals: np.ndarray,
-    err_bound: float,
-    state_symbols: list,
+    ref_vals: np.ndarray | dict[sp.Symbol, np.ndarray],
+    err_bounds: float | dict[sp.Symbol, float],
+    state_symbols: list[sp.Symbol],
 ) -> list[list[np.ndarray]]:
     """
     Compute polytopic Jacobian bounds at reference trajectory points.
 
     For nonlinear systems, the Jacobian J(x) depends on the state. This function
-    computes polytope vertices by evaluating J at the bounds of the error tube:
-    theta ∈ [theta_ref - err_bound, theta_ref + err_bound].
+    computes polytope vertices by evaluating J at all corners of the error tube
+    for each nonlinear state variable.
 
     Parameters
     ----------
     J_sym : sympy.Matrix
         Symbolic Jacobian matrix J(x) = ∂f/∂x with parameters already substituted.
-        Should still contain the state variable (e.g., theta).
-    theta_ref_vals : array_like
-        Reference trajectory values at sample times, shape (N,).
-    err_bound : float
-        Half-width of the polytopic bound (e.g., 0.1 rad for theta).
-    state_symbols : list
-        List of sympy symbols for states. First element is assumed to be the
-        bounded state (e.g., theta).
+        Should still contain the nonlinear state variable(s).
+    ref_vals : np.ndarray or dict[sp.Symbol, np.ndarray]
+        Reference trajectory values at sample times. Either:
+        - 1D array of shape (N,) for single-variable case (uses first state symbol)
+        - Dict mapping state symbols to their reference trajectories, each shape (N,)
+    err_bounds : float or dict[sp.Symbol, float]
+        Half-width of the polytopic bounds. Either:
+        - Single float for single-variable case (applies to first state symbol)
+        - Dict mapping state symbols to their error bounds
+    state_symbols : list[sp.Symbol]
+        List of sympy symbols for states that appear nonlinearly in J.
+        For backwards compatibility, if ref_vals is an array, uses first element.
 
     Returns
     -------
     list[list[np.ndarray]]
         List of length N, where each element is a list of Jacobian matrices
-        (polytope vertices) at that time point. For scalar bounding, returns
-        2 vertices per time point: [J(theta_ref - err), J(theta_ref + err)].
+        (polytope vertices) at that time point. For n nonlinear states, returns
+        2^n vertices per time point.
 
     Example
     -------
+    Single nonlinear state (backwards compatible):
     >>> J_sym = sp.Matrix([[0, 1], [-sp.cos(theta), -c]])
     >>> theta_refs = np.array([0.0, 0.5, 1.0])
     >>> polytopes = polytopic_jacobians(J_sym, theta_refs, 0.1, [theta])
@@ -60,16 +65,54 @@ def polytopic_jacobians(
     3
     >>> len(polytopes[0])  # Two vertices per polytope
     2
-    """
-    theta_sym = state_symbols[0]  # First state is the bounded variable
-    ref_jacobians = []
 
-    for theta_ref in theta_ref_vals:
+    Multiple nonlinear states:
+    >>> J_sym = sp.Matrix([[sp.sin(x1), sp.cos(x2)], [0, -1]])
+    >>> refs = {x1: np.array([0.0, 0.5]), x2: np.array([1.0, 1.5])}
+    >>> bounds = {x1: 0.1, x2: 0.2}
+    >>> polytopes = polytopic_jacobians(J_sym, refs, bounds, [x1, x2])
+    >>> len(polytopes[0])  # Four vertices (2^2) per polytope
+    4
+    """
+    import itertools
+
+    # Handle backwards-compatible single-variable case
+    if not isinstance(ref_vals, dict):
+        # Single array/list provided - use first state symbol
+        nonlinear_symbols = [state_symbols[0]]
+        ref_vals_dict = {state_symbols[0]: np.asarray(ref_vals)}
+    else:
+        ref_vals_dict = ref_vals
+        nonlinear_symbols = list(ref_vals_dict.keys())
+
+    if isinstance(err_bounds, (int, float)):
+        # Single bound provided - apply to all nonlinear symbols
+        err_bounds_dict = {sym: float(err_bounds) for sym in nonlinear_symbols}
+    else:
+        err_bounds_dict = err_bounds
+
+    # Get number of time samples from first reference trajectory
+    first_ref = next(iter(ref_vals_dict.values()))
+    N = len(first_ref)
+
+    # Build polytope vertices at each time point
+    ref_jacobians = []
+    n_vars = len(nonlinear_symbols)
+
+    for i in range(N):
         J_vertices = []
-        # Polytope vertices: evaluate at theta_ref ± err_bound
-        for theta_val in [theta_ref - err_bound, theta_ref + err_bound]:
-            J_eval = J_sym.subs({theta_sym: theta_val})
+
+        # Generate all 2^n corner combinations: each variable at ref ± err
+        for signs in itertools.product([-1, 1], repeat=n_vars):
+            subs_dict = {}
+            for sym, sign in zip(nonlinear_symbols, signs):
+                ref_val = ref_vals_dict[sym][i]
+                err = err_bounds_dict[sym]
+                subs_dict[sym] = ref_val + sign * err
+
+            J_eval = J_sym.subs(subs_dict)
             J_vertices.append(np.array(J_eval, dtype=float))
+
         ref_jacobians.append(J_vertices)
 
     return ref_jacobians
