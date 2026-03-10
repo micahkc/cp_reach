@@ -68,11 +68,23 @@ def ast_to_sympy(
         except Exception:
             return sp.S.Zero
 
-    # Handle Terminal nodes (literals and identifiers)
+    # Handle Literal nodes (rumoca >= 0.8)
+    if "Literal" in expr_ast:
+        return _parse_literal(expr_ast["Literal"])
+
+    # Handle VarRef nodes (rumoca >= 0.8)
+    if "VarRef" in expr_ast:
+        return _parse_varref(expr_ast["VarRef"], symbols, create_missing)
+
+    # Handle BuiltinCall nodes (rumoca >= 0.8, e.g., der())
+    if "BuiltinCall" in expr_ast:
+        return _parse_builtin_call(expr_ast["BuiltinCall"], symbols, create_missing)
+
+    # Handle Terminal nodes (literals and identifiers, rumoca < 0.8)
     if "Terminal" in expr_ast:
         return _parse_terminal(expr_ast["Terminal"], symbols, create_missing)
 
-    # Handle ComponentReference nodes (variable references)
+    # Handle ComponentReference nodes (variable references, rumoca < 0.8)
     if "ComponentReference" in expr_ast:
         return _parse_component_reference(
             expr_ast["ComponentReference"], symbols, create_missing
@@ -155,6 +167,89 @@ def _parse_terminal(
         return sym
 
     raise KeyError(f"Unknown symbol: {text}")
+
+
+def _parse_literal(literal: Dict[str, Any]) -> sp.Expr:
+    """Parse a Literal AST node (rumoca >= 0.8)."""
+    if isinstance(literal, dict):
+        if "Real" in literal:
+            return sp.Float(literal["Real"])
+        if "Integer" in literal:
+            return sp.Integer(literal["Integer"])
+        if "Boolean" in literal:
+            return sp.S.true if literal["Boolean"] else sp.S.false
+        if "String" in literal:
+            return sp.Symbol(f"'{literal['String']}'")
+    return sp.S.Zero
+
+
+def _parse_varref(
+    varref: Dict[str, Any],
+    symbols: Dict[str, sp.Symbol],
+    create_missing: bool,
+) -> sp.Expr:
+    """Parse a VarRef AST node (rumoca >= 0.8)."""
+    name = varref.get("name", "")
+    if name in symbols:
+        return symbols[name]
+    if create_missing:
+        sym = sp.Symbol(name)
+        symbols[name] = sym
+        return sym
+    raise KeyError(f"Unknown symbol: {name}")
+
+
+def _parse_builtin_call(
+    builtin: Dict[str, Any],
+    symbols: Dict[str, sp.Symbol],
+    create_missing: bool,
+) -> sp.Expr:
+    """Parse a BuiltinCall AST node (rumoca >= 0.8)."""
+    func_name = builtin.get("function", "")
+    args_ast = builtin.get("args", [])
+    args = [ast_to_sympy(arg, symbols, create_missing) for arg in args_ast]
+
+    if func_name in ("Der", "der"):
+        if len(args) != 1:
+            raise ValueError(f"der() expects 1 argument, got {len(args)}")
+        return sp.Function("der")(*args)
+    if func_name in ("Sin", "sin"):
+        return sp.sin(args[0])
+    if func_name in ("Cos", "cos"):
+        return sp.cos(args[0])
+    if func_name in ("Tan", "tan"):
+        return sp.tan(args[0])
+    if func_name in ("Exp", "exp"):
+        return sp.exp(args[0])
+    if func_name in ("Log", "log"):
+        return sp.log(args[0])
+    if func_name in ("Sqrt", "sqrt"):
+        return sp.sqrt(args[0])
+    if func_name in ("Abs", "abs"):
+        return sp.Abs(args[0])
+    if func_name in ("Sign", "sign"):
+        return sp.sign(args[0])
+    if func_name in ("Min", "min"):
+        return sp.Min(*args)
+    if func_name in ("Max", "max"):
+        return sp.Max(*args)
+    if func_name in ("Asin", "asin"):
+        return sp.asin(args[0])
+    if func_name in ("Acos", "acos"):
+        return sp.acos(args[0])
+    if func_name in ("Atan", "atan"):
+        return sp.atan(args[0])
+    if func_name in ("Atan2", "atan2"):
+        return sp.atan2(args[0], args[1])
+    if func_name in ("Sinh", "sinh"):
+        return sp.sinh(args[0])
+    if func_name in ("Cosh", "cosh"):
+        return sp.cosh(args[0])
+    if func_name in ("Tanh", "tanh"):
+        return sp.tanh(args[0])
+
+    # Generic fallback
+    return sp.Function(func_name)(*args)
 
 
 def _parse_component_reference(
@@ -518,9 +613,16 @@ def parse_equation(
     >>> rhs
     -k*x
     """
+    # New format (rumoca >= 0.8): residual form {"lhs": null, "rhs": expr}
+    # where the equation means rhs = 0 (residual)
+    if "lhs" in eq_ast and "rhs" in eq_ast and "Simple" not in eq_ast:
+        rhs_ast = eq_ast["rhs"]
+        residual = ast_to_sympy(rhs_ast, symbols, create_missing)
+        return _parse_residual_equation(residual)
+
+    # Old format (rumoca < 0.8): {"Simple": {"lhs": ..., "rhs": ...}}
     if "Simple" not in eq_ast:
         # Other equation types (For, If, When, Connect)
-        # Return as None for now - they need special handling
         return (None, sp.S.Zero)
 
     simple = eq_ast["Simple"]
@@ -537,6 +639,80 @@ def parse_equation(
 
     # Algebraic equation
     return (None, sp.Eq(lhs, rhs))
+
+
+def _parse_residual_equation(
+    residual: sp.Expr,
+) -> Tuple[Optional[str], sp.Expr]:
+    """
+    Parse a residual equation (residual = 0) into (state_name, rhs) or algebraic form.
+
+    For der(x) - expr = 0, returns (x, expr).
+    For lhs - rhs = 0, returns (None, Eq(lhs, rhs)).
+    """
+    # Check if residual is of the form der(x) - expr
+    # Expand and look for der() terms
+    expanded = sp.expand(residual)
+
+    # Collect der() terms
+    der_func = sp.Function("der")
+    der_terms = {}
+    remaining = sp.S.Zero
+
+    if isinstance(expanded, sp.Add):
+        for term in expanded.args:
+            found = _find_der_in_term(term)
+            if found:
+                state_name, coeff = found
+                der_terms[state_name] = der_terms.get(state_name, sp.S.Zero) + coeff
+            else:
+                remaining += term
+    else:
+        found = _find_der_in_term(expanded)
+        if found:
+            state_name, coeff = found
+            der_terms[state_name] = coeff
+        else:
+            remaining = expanded
+
+    if len(der_terms) == 1:
+        state_name, coeff = next(iter(der_terms.items()))
+        # der(x)*coeff + remaining = 0  =>  der(x) = -remaining/coeff
+        rhs = sp.simplify(-remaining / coeff)
+        return (state_name, rhs)
+
+    # No der() found - algebraic equation: residual = 0
+    # Try to split into lhs = rhs form
+    if isinstance(expanded, sp.Add):
+        # Group positive and negative terms
+        pos_terms = sp.S.Zero
+        neg_terms = sp.S.Zero
+        for term in expanded.args:
+            if term.could_extract_minus_sign():
+                neg_terms += -term
+            else:
+                pos_terms += term
+        return (None, sp.Eq(pos_terms, neg_terms))
+
+    return (None, sp.Eq(residual, sp.S.Zero))
+
+
+def _find_der_in_term(term: sp.Expr) -> Optional[Tuple[str, sp.Expr]]:
+    """Find der(x) in a term and return (state_name, coefficient)."""
+    der_func = sp.Function("der")
+
+    # Direct der(x) term
+    if hasattr(term, "func") and str(term.func) == "der" and term.args:
+        return (str(term.args[0]), sp.S.One)
+
+    # coeff * der(x)
+    if isinstance(term, sp.Mul):
+        for factor in term.args:
+            if hasattr(factor, "func") and str(factor.func) == "der" and factor.args:
+                coeff = term / factor
+                return (str(factor.args[0]), coeff)
+
+    return None
 
 
 def parse_all_equations(

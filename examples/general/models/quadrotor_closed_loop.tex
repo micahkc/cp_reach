@@ -1,0 +1,262 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, bm}
+\usepackage{hyperref}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\SO}{\mathrm{SO}(3)}
+\newcommand{\vee}{\mathrm{vee}}
+\newcommand{\skew}[1]{[#1]_\times}
+\newcommand{\der}[1]{\dot{#1}}
+\newcommand{\T}{\!\top}
+
+\title{Closed-Loop Quadrotor Model for Reachability Analysis}
+\author{cp\_reach}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Overview}
+
+This document describes the continuous-time closed-loop quadrotor model
+defined in \texttt{quadrotor\_closed\_loop.mo}. The model is structured
+in three layers via Modelica inheritance:
+
+\begin{enumerate}
+  \item \textbf{RigidBody} --- 6-DOF kinematics using rotation matrices
+        (15 states)
+  \item \textbf{Quadrotor} --- adds thrust mapping and angular dynamics
+        (+3 states = 18)
+  \item \textbf{QuadrotorClosedLoop} --- adds a geometric SO(3)
+        controller with velocity integrators (+3 states = 21)
+\end{enumerate}
+
+All dynamics are polynomial or bilinear in the states---there are no
+trigonometric functions---making the model suitable for polytopic
+Jacobian-based reachability analysis in cp\_reach.
+
+%% ====================================================================
+\section{Rigid Body Kinematics}
+%% ====================================================================
+
+The rigid body state is $(\bm{p},\, \bm{v},\, R)$ where
+$\bm{p}, \bm{v} \in \R^3$ are world-frame (NED) position and velocity,
+and $R \in \SO$ is the body-to-world rotation matrix.
+
+\begin{align}
+  \der{\bm{p}} &= \bm{v} \\[4pt]
+  \der{\bm{v}} &= R\,\bm{a} + \bm{g}, \qquad
+    \bm{g} = \begin{bmatrix} 0 \\ 0 \\ g \end{bmatrix} \\[4pt]
+  \der{R} &= R\,\skew{\bm{\omega}}
+\end{align}
+
+where $\bm{a} = [a_x,\, a_y,\, a_z]^\T$ is the body-frame specific
+force (excluding gravity), $\bm{\omega} = [\omega_x,\, \omega_y,\,
+\omega_z]^\T$ is the body-frame angular velocity, and
+$\skew{\bm{\omega}}$ is the skew-symmetric matrix:
+\begin{equation}
+  \skew{\bm{\omega}} =
+  \begin{bmatrix}
+    0 & -\omega_z & \omega_y \\
+    \omega_z & 0 & -\omega_x \\
+    -\omega_y & \omega_x & 0
+  \end{bmatrix}.
+\end{equation}
+
+In NED convention, positive $p_z$ is downward and gravity appears as
+$+g$ in the $v_z$ equation.
+
+%% ====================================================================
+\section{Quadrotor Plant}
+%% ====================================================================
+
+The quadrotor extends the rigid body with a thrust-to-force mapping and
+Euler's rotational equations. The control inputs at this level are thrust
+$T$ and body-frame moments $\bm{M} = [M_x,\, M_y,\, M_z]^\T$.
+
+\subsection{Force Mapping}
+
+Thrust acts along the body $-z$ axis (upward in NED):
+\begin{equation}
+  \bm{a} = \begin{bmatrix} 0 \\ 0 \\ -T/m \end{bmatrix}.
+\end{equation}
+
+\subsection{Angular Dynamics}
+
+Euler's equations with diagonal inertia tensor
+$I = \mathrm{diag}(I_{xx},\, I_{yy},\, I_{zz})$:
+\begin{align}
+  I_{xx}\,\der{\omega}_x &= M_x + (I_{yy} - I_{zz})\,\omega_y\,\omega_z \\
+  I_{yy}\,\der{\omega}_y &= M_y + (I_{zz} - I_{xx})\,\omega_x\,\omega_z \\
+  I_{zz}\,\der{\omega}_z &= M_z + (I_{xx} - I_{yy})\,\omega_x\,\omega_y
+\end{align}
+
+The cross-coupling terms $(\omega_i \omega_j)$ are bilinear in the
+states.
+
+%% ====================================================================
+\section{Geometric Controller}
+%% ====================================================================
+
+The controller follows the geometric tracking approach of Lee, Leok, and
+McClamroch\footnote{T.~Lee, M.~Leok, N.~H.~McClamroch, ``Geometric
+Tracking Control of a Quadrotor UAV on SE(3),'' \emph{IEEE CDC}, 2010.},
+with a cascaded structure:
+\[
+  (\bm{p},\bm{v}) \;\xrightarrow{\text{PID}}\;
+  \bm{a}_\mathrm{des} \;\xrightarrow{\text{project}}\;
+  T \;\qquad\qquad
+  R \;\xrightarrow{\text{SO(3)}}\;
+  \bm{e}_R \;\xrightarrow{\text{rate PD}}\;
+  \bm{M}
+\]
+
+\subsection{Outer Loop: Position and Velocity}
+
+Define the tracking errors:
+\begin{equation}
+  \bm{e}_p = \bm{p} - \bm{p}_\mathrm{ref}, \qquad
+  \bm{e}_v = \bm{v} - \bm{v}_\mathrm{ref}.
+\end{equation}
+
+A velocity-error integrator state $\bm{\xi} \in \R^3$ provides integral
+action:
+\begin{equation}
+  \der{\bm{\xi}} = \bm{e}_v.
+\end{equation}
+
+The desired world-frame acceleration is computed via PID:
+\begin{equation}
+  \bm{a}_\mathrm{des} =
+    -K_p\,\bm{e}_p - K_v\,\bm{e}_v - K_i\,\bm{\xi}
+\end{equation}
+where $K_p$, $K_v$, $K_i$ are diagonal gain matrices.
+
+\subsection{Thrust Computation}
+
+The thrust is the projection of the desired force onto the current body
+$z$-axis:
+\begin{equation}
+  T = T_\mathrm{ff}
+      - m\,(\bm{a}_\mathrm{des} - \bm{g})^\T (R\,\bm{e}_3)
+\end{equation}
+where $R\,\bm{e}_3 = [R_{13},\; R_{23},\; R_{33}]^\T$ is the third
+column of $R$ (body $z$-axis in world frame) and $T_\mathrm{ff}$ is a
+feedforward thrust term.
+
+\subsection{Attitude Error: Geometric SO(3)}
+
+Rather than using Euler angles (which introduce trigonometric
+singularities), the attitude error is computed directly on $\SO$ using
+the \emph{vee map}.
+
+Define the relative rotation:
+\begin{equation}
+  S = R_\mathrm{ref}^\T R.
+\end{equation}
+
+The attitude error vector is extracted from the skew-symmetric part of
+$S$:
+\begin{equation}
+  \bm{e}_R = \tfrac{1}{2}\,\vee(S - S^\T)
+\end{equation}
+where the vee map extracts the vector from a skew-symmetric matrix:
+\begin{equation}
+  \vee\!\begin{pmatrix}
+    0 & -c & b \\ c & 0 & -a \\ -b & a & 0
+  \end{pmatrix}
+  = \begin{pmatrix} a \\ b \\ c \end{pmatrix}.
+\end{equation}
+
+Explicitly, the three error components are:
+\begin{align}
+  e_{R,x} &= \tfrac{1}{2}(S_{32} - S_{23}) \\
+  e_{R,y} &= \tfrac{1}{2}(S_{13} - S_{31}) \\
+  e_{R,z} &= \tfrac{1}{2}(S_{21} - S_{12})
+\end{align}
+
+For small rotations, $\bm{e}_R$ approximates the rotation vector between
+$R$ and $R_\mathrm{ref}$. The computation involves only products of
+rotation matrix entries---no trigonometric functions.
+
+\subsection{Rate Error with Disturbance Injection}
+
+The angular rate error incorporates a sensor disturbance
+$\bm{d} = [d_p,\, d_q,\, d_r]^\T$ representing an acoustic attack bias
+on the gyroscope:
+\begin{equation}
+  \bm{e}_\omega = (\bm{\omega} + \bm{d}) - \bm{\omega}_\mathrm{ref}.
+\end{equation}
+
+The controller observes $\bm{\omega} + \bm{d}$ rather than the true
+$\bm{\omega}$, so the disturbance directly corrupts the rate feedback.
+
+\subsection{Moment Commands}
+
+The moments combine attitude proportional, rate derivative, feedforward,
+and gyroscopic compensation terms:
+\begin{align}
+  M_x &= M_{x,\mathrm{ff}}
+         - I_{xx}(K_{r,x}\,e_{R,x} + K_{\omega,x}\,e_{\omega,x})
+         + (I_{yy} - I_{zz})\,\omega_y\,\omega_z \\
+  M_y &= M_{y,\mathrm{ff}}
+         - I_{yy}(K_{r,y}\,e_{R,y} + K_{\omega,y}\,e_{\omega,y})
+         + (I_{zz} - I_{xx})\,\omega_x\,\omega_z \\
+  M_z &= M_{z,\mathrm{ff}}
+         - I_{zz}(K_{r,z}\,e_{R,z} + K_{\omega,z}\,e_{\omega,z})
+         + (I_{xx} - I_{yy})\,\omega_x\,\omega_y
+\end{align}
+
+The gyroscopic terms cancel the cross-coupling in Euler's equations at
+the reference trajectory, improving tracking performance.
+
+%% ====================================================================
+\section{cp\_reach Interface}
+%% ====================================================================
+
+The model follows the cp\_reach convention for closed-loop Modelica
+files:
+
+\begin{center}
+\begin{tabular}{lll}
+  \textbf{Category} & \textbf{Variables} & \textbf{Count} \\
+  \hline
+  States & $p_x, p_y, p_z, v_x, v_y, v_z,$
+           $R_{11}\ldots R_{33},$
+           $\omega_x, \omega_y, \omega_z,$
+           $\xi_x, \xi_y, \xi_z$ & 21 \\[2pt]
+  Reference inputs & $\bm{p}_\mathrm{ref}, \bm{v}_\mathrm{ref},
+           R_\mathrm{ref}$ (9 entries),
+           $\bm{\omega}_\mathrm{ref},$
+           $T_\mathrm{ff}, \bm{M}_\mathrm{ff}$ & 19 \\[2pt]
+  Disturbance inputs & $d_p, d_q, d_r$ & 3 \\[2pt]
+  Algebraic (errors) & $\bm{e}_p, \bm{e}_v, \bm{e}_R, \bm{e}_\omega,
+           \bm{a}_\mathrm{des}, S$ (9 entries) & 21 \\[2pt]
+  Parameters & $m, I_{xx}, I_{yy}, I_{zz}, g,$
+               gains (16 total) & 21 \\
+\end{tabular}
+\end{center}
+
+\subsection{Error Dynamics for Reachability}
+
+cp\_reach computes error dynamics by taking the Jacobian of the
+closed-loop right-hand side with respect to the state:
+\begin{equation}
+  \der{\bm{e}} = J(\bm{x})\,\bm{e} + B_d\,\bm{d}
+\end{equation}
+where $J(\bm{x}) = \frac{\partial \bm{f}}{\partial \bm{x}}$ is
+evaluated along the reference trajectory. Because all dynamics are
+polynomial in the states, $J$ is also polynomial, and cp\_reach can
+bound it over a polytopic region using vertex evaluation.
+
+\subsection{Polytopic Considerations}
+
+For a system with $n$ bounded state variables appearing nonlinearly in
+the Jacobian, the polytopic approach evaluates $J$ at $2^n$ vertices.
+The rotation matrix entries $R_{ij}$ and angular rates $\omega_i$
+contribute 12 nonlinear state variables, giving up to $2^{12} = 4096$
+vertices. This is computationally tractable but represents the main
+scaling challenge for this model.
+
+\end{document}

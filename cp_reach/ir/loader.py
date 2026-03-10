@@ -235,7 +235,14 @@ class DaeIR:
         algebraics = {k: parse_component(k, v) for k, v in data.get("y", {}).items()}
         inputs = {k: parse_component(k, v) for k, v in data.get("u", {}).items()}
         parameters = {k: parse_component(k, v) for k, v in data.get("p", {}).items()}
-        constants = {k: parse_component(k, v) for k, v in data.get("cp", {}).items()}
+        # Constants: "cp" (old) or "constants" (rumoca >= 0.8)
+        constants_data = data.get("cp", data.get("constants", {}))
+        constants = {k: parse_component(k, v) for k, v in constants_data.items()}
+
+        # Equations: "fx" (old) or "f_x" (rumoca >= 0.8)
+        equations = data.get("fx", data.get("f_x", []))
+        initial_equations = data.get("fx_init", data.get("initial_equations", []))
+        algebraic_equations = data.get("fz", data.get("f_z", []))
 
         return cls(
             model_name=data.get("model_name", "Unknown"),
@@ -245,9 +252,9 @@ class DaeIR:
             inputs=inputs,
             parameters=parameters,
             constants=constants,
-            equations=data.get("fx", []),
-            initial_equations=data.get("fx_init", []),
-            algebraic_equations=data.get("fz", []),
+            equations=equations,
+            initial_equations=initial_equations,
+            algebraic_equations=algebraic_equations,
         )
 
     def infer_roles(self) -> Dict[str, str]:
@@ -342,7 +349,19 @@ def _parse_start_value(start_ast: Any) -> Optional[float]:
     if not isinstance(start_ast, dict):
         return None
 
-    # Handle Terminal nodes (literals)
+    # Handle Literal nodes (rumoca >= 0.8)
+    if "Literal" in start_ast:
+        literal = start_ast["Literal"]
+        if isinstance(literal, dict):
+            for key in ("Real", "Integer"):
+                if key in literal:
+                    try:
+                        return float(literal[key])
+                    except (ValueError, TypeError):
+                        pass
+        return None
+
+    # Handle Terminal nodes (literals, rumoca < 0.8)
     if "Terminal" in start_ast:
         terminal = start_ast["Terminal"]
         token = terminal.get("token", {})

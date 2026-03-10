@@ -14,9 +14,18 @@ CP_Reach computes **guaranteed bounds** on how far a controlled system can devia
 
 **What it is:** A mathematical description of your system's dynamics, compiled from Modelica.
 
-**Format:** JSON file produced by Rumoca compiler
+**Format:** JSON file produced by [Rumoca](https://rumoca.dev) compiler
+
+Via CLI:
 ```bash
 rumoca --json -m ModelName model.mo > model.json
+```
+
+Via Python (`pip install rumoca`):
+```python
+import rumoca
+result = rumoca.compile("model.mo")
+json_str = result.to_base_modelica_json()
 ```
 
 **Content:**

@@ -11,7 +11,7 @@ CP_Reach uses Linear Matrix Inequalities (LMIs) and Lyapunov theory to compute e
 │                              User Interface                                  │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────┐  │
 │  │  ir_load()      │  │  sympy_load()   │  │  analyze()                  │  │
-│  │  (IR JSON)      │  │  (Modelica)     │  │  (IR + YAML config)         │  │
+│  │  (Rumoca JSON)  │  │  (cyecca, opt.) │  │  (IR + YAML config)         │  │
 │  └────────┬────────┘  └────────┬────────┘  └──────────────┬──────────────┘  │
 └───────────┼────────────────────┼─────────────────────────┼──────────────────┘
             │                    │                         │
@@ -64,6 +64,7 @@ cp_reach/
 ├── reachability/        # Core analysis (main module)
 │   ├── lmi.py           # LMI solvers
 │   ├── polytopic.py     # Time-varying polytopic LMIs
+│   ├── cascaded.py      # Cascaded Lie group LMIs (SE_2(3), quadrotor, satellite)
 │   ├── certification.py # Continuous-time verification
 │   ├── ellipsoids.py    # Ellipsoid operations
 │   └── workflows.py     # High-level analysis workflows
@@ -79,7 +80,7 @@ cp_reach/
 
 ### 1. `ir` - Intermediate Representation
 
-Loads Modelica models compiled to JSON by [Rumoca](https://rumoca.dev). This provides a cyecca-free path for simpler deployments.
+Loads Modelica models compiled to JSON by [Rumoca](https://rumoca.dev). This is the primary model-loading path.
 
 **Key classes:**
 - `DaeIR`: Represents a DAE system from Rumoca JSON
@@ -116,6 +117,12 @@ The main computational module. Solves LMI problems to compute guaranteed bounds 
 | `polytopic_jacobians()` | Compute Jacobians at polytope vertices |
 | `solve_time_varying_polytopic_lmi()` | Time-varying bounds for nonlinear systems |
 | `compute_reachable_set()` | High-level wrapper for LMI analysis |
+| `solve_cascaded_lmi()` | Two-layer cascaded LMI for Lie group systems |
+| `se23_adjoint()` | SE_2(3) adjoint matrix computation |
+| `se23_drift_matrix()` | Log-linear kinematic drift matrix |
+| `se23_kinematic_matrices()` | Closed-loop SE_2(3) kinematic A(t) matrices |
+| `euler_equation_jacobians()` | Polytopic Jacobians for rotational dynamics |
+| `quadrotor_flatness()` | Differential flatness reference computation |
 | `simulate_dist()` | Monte Carlo validation with disturbances |
 
 **LMI formulation:**
@@ -217,6 +224,13 @@ Both SymPy (symbolic) and CasADi (numeric) backends are supported:
 ### Polytopic Uncertainty
 Nonlinear systems are handled via polytopic over-approximation. The system Jacobian is evaluated at vertices of a bounding box, and a common Lyapunov function is found that works for all vertices.
 
+### Cascaded Lie Group Analysis
+For systems with geometric structure (quadrotors, satellites), cp_reach uses a two-layer cascaded LMI approach:
+- **Layer 1**: Rotational dynamics (Euler's equations) — polytopic LMI with 2^3 vertices
+- **Layer 2**: SE_2(3) kinematics — exact log-linear LMI (no polytopic approximation needed)
+
+The key insight is that group-affine kinematics yield exact log-linear error dynamics, eliminating approximation error in the kinematic layer.
+
 ### Separation of Concerns
 - **IR module**: Handles Modelica parsing (can be replaced with other frontends)
 - **Dynamics module**: Pure state space operations (backend-agnostic)
@@ -253,7 +267,8 @@ sympy          - Symbolic mathematics
 scipy          - Scientific computing (optimization)
 matplotlib     - Visualization
 control        - Control theory utilities
-cyecca         - Lie group operations (optional, for satellite/quadrotor)
+rumoca         - Modelica compiler (pip install rumoca)
+cyecca         - Lie group operations (optional: pip install cp_reach[satellite])
 ```
 
 ## Performance Considerations

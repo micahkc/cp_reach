@@ -34,7 +34,27 @@ A closed-loop mass-spring-damper with PD control and feedforward. Error dynamics
 
 ---
 
-### 2. Nonlinear System: Pendulum with PID (`structured_nonlinear.ipynb`)
+### 2. Quadrotor on SE_2(3): Cascaded Lie Group (`structured_quadrotor.ipynb`)
+
+A quadrotor analyzed using cascaded LMIs on the SE_2(3) Lie group. Error dynamics split into two layers: rotational (polytopic) and kinematic (exact log-linear).
+
+**Model:** `models/quadrotor_closed_loop.json` (compiled from `quadrotor_closed_loop.mo`)
+- Plant: 6-DOF quadrotor with Euler's equations
+- Controller: Cascaded PD (position → velocity → attitude → rate)
+- Lie group: SE_2(3) for coupled position/velocity/rotation error
+
+**Workflow:**
+1. Load Lie group specification from JSON
+2. Generate reference trajectory via differential flatness
+3. Layer 1: Solve polytopic LMI for rotational dynamics (8 vertices)
+4. Layer 2: Solve exact log-linear LMI for SE_2(3) kinematics
+5. Map Lie algebra bounds to physical space via exponential map
+
+**Output:** `output_quadrotor/`
+
+---
+
+### 3. Nonlinear System: Pendulum with PID (`structured_nonlinear.ipynb`)
 
 A controlled pendulum with gravity nonlinearity (`sin(theta)`). Error dynamics are **nonlinear**, requiring time-varying polytopic LMI bounds.
 
@@ -75,6 +95,10 @@ A controlled pendulum with gravity nonlinearity (`sin(theta)`). Error dynamics a
 | `closed_loop.mo` | Linear closed-loop system |
 | `closed_loop_composed.mo` | Alternative composition structure |
 | `pendulum_closed_loop.mo` | Nonlinear pendulum with PID control |
+| `MFQuadrotor.mo` | Quadrotor Modelica model |
+| `quadrotor_closed_loop.mo` | Quadrotor closed-loop system |
+| `quadrotor_closed_loop.json` | Compiled quadrotor DAE IR |
+| `quadrotor_closed_loop_lie.json` | Lie group specification for quadrotor |
 
 ### Configuration Files
 
@@ -90,6 +114,7 @@ A controlled pendulum with gravity nonlinearity (`sin(theta)`). Error dynamics a
 | `run_analysis.py` | CLI-based end-to-end example |
 | `structured_workflow.ipynb` | Linear system analysis notebook |
 | `structured_nonlinear.ipynb` | Nonlinear system analysis notebook |
+| `structured_quadrotor.ipynb` | Quadrotor SE_2(3) analysis notebook |
 
 ---
 

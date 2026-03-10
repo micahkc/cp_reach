@@ -23,6 +23,11 @@ The `general/` folder demonstrates the end-to-end structured workflow for both l
 - Standard LMI-based reachability analysis
 - Output: flowpipe bounds, invariant ellipsoid
 
+**Quadrotor (Lie Group): [general/structured_quadrotor.ipynb](general/structured_quadrotor.ipynb)**
+- Quadrotor on SE_2(3) with cascaded LMI
+- Two-layer architecture: rotational (polytopic) + kinematic (exact log-linear)
+- Differential flatness reference trajectory
+
 **Nonlinear System: [general/structured_nonlinear.ipynb](general/structured_nonlinear.ipynb)**
 - Pendulum with PID control and gravity nonlinearity
 - Time-varying polytopic LMI bounds

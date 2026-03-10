@@ -20,6 +20,25 @@ from .polytopic import (
     compute_state_bounds,
 )
 from .certification import certify_lipschitz_grid
+from .cascaded import (
+    load_lie_spec,
+    partition_states,
+    classify_remaining_states,
+    identify_linear_coupling,
+    se23_adjoint,
+    se23_coupling_matrix,
+    se23_drift_matrix,
+    solve_cascaded_lmi,
+    se23_expmap,
+    se23_expmap_single,
+    sample_ellipsoid_boundary,
+    quadrotor_flatness,
+    compute_omega_from_R,
+    euler_equation_jacobians,
+    se23_kinematic_matrices,
+    se23_kinematic_matrices_augmented,
+    se23_controller_matrices,
+)
 
 __all__ = [
     # LMI solvers
@@ -43,4 +62,22 @@ __all__ = [
     "ir_load",
     "analyze",
     "ModelicaIRModel",
+    # Cascaded / Lie group
+    "load_lie_spec",
+    "partition_states",
+    "classify_remaining_states",
+    "identify_linear_coupling",
+    "se23_adjoint",
+    "se23_coupling_matrix",
+    "se23_drift_matrix",
+    "solve_cascaded_lmi",
+    "se23_expmap",
+    "se23_expmap_single",
+    "sample_ellipsoid_boundary",
+    "quadrotor_flatness",
+    "compute_omega_from_R",
+    "euler_equation_jacobians",
+    "se23_kinematic_matrices",
+    "se23_kinematic_matrices_augmented",
+    "se23_controller_matrices",
 ]

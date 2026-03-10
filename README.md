@@ -15,16 +15,10 @@
 
 ## Installation
 
-### From PyPI (when published)
-
-```bash
-pip install cp_reach
-```
-
 ### From Source
 
 ```bash
-git clone https://github.com/CogniPilot/cp_reach.git
+git clone https://github.com/micahkc/cp_reach.git
 cd cp_reach
 pip install -e .
 ```
@@ -37,7 +31,10 @@ The library requires:
 - `cvxpy`: Convex optimization and LMI solving
 - `casadi`: Symbolic framework and numerical integration
 - `sympy`: Symbolic mathematics for dynamics classification
-- `cyecca`: Lie group operations (SO(3), SE(2,3))
+- [`rumoca`](https://rumoca.dev): Modelica compiler (`pip install rumoca`)
+
+Optional:
+- `cyecca`: Lie group operations for satellite/quadrotor modules (`pip install cp_reach[satellite]`)
 
 ## Quick Start
 
@@ -50,7 +47,7 @@ from cp_reach.ir import DaeIR, ir_to_symbolic_statespace
 from cp_reach.reachability import solve_disturbance_LMI
 
 # Compile Modelica model with RuMoCA
-result = rumoca.compile("ClosedLoop.mo", model="ClosedLoop")
+result = rumoca.compile("ClosedLoop.mo")
 json_str = result.to_base_modelica_json()
 
 # Load IR and convert to symbolic state space

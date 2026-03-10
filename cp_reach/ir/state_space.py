@@ -266,29 +266,57 @@ def _solve_algebraic_equations(
         Substitution dictionary mapping alg vars to expressions
     """
     subs = {}
+    remaining_eqs = list(algebraic_eqs)
 
-    for eq in algebraic_eqs:
-        if not isinstance(eq, sp.Eq):
-            continue
+    # Multiple passes to resolve dependencies
+    for _ in range(10):
+        if not remaining_eqs:
+            break
+        still_remaining = []
+        for eq in remaining_eqs:
+            if not isinstance(eq, sp.Eq):
+                continue
 
-        lhs, rhs = eq.lhs, eq.rhs
+            lhs, rhs = eq.lhs, eq.rhs
 
-        # Check if lhs is a single algebraic variable
-        if lhs in alg_symbols.values():
-            subs[lhs] = rhs
-        elif rhs in alg_symbols.values():
-            subs[rhs] = lhs
-        else:
-            # Try to solve for any algebraic variable
-            for alg_sym in alg_symbols.values():
-                if alg_sym in eq.free_symbols:
-                    try:
-                        solutions = sp.solve(eq, alg_sym)
-                        if solutions:
-                            subs[alg_sym] = solutions[0]
-                            break
-                    except Exception:
+            # Check if lhs is a single algebraic variable (not yet resolved)
+            if lhs in alg_symbols.values() and lhs not in subs:
+                subs[lhs] = rhs
+                continue
+            elif rhs in alg_symbols.values() and rhs not in subs:
+                subs[rhs] = lhs
+                continue
+
+            # Find unresolved algebraic variables in this equation
+            unresolved = [
+                sym for sym in alg_symbols.values()
+                if sym in eq.free_symbols and sym not in subs
+            ]
+
+            if len(unresolved) == 1:
+                # Only one unresolved variable — solve for it
+                try:
+                    solutions = sp.solve(eq, unresolved[0])
+                    if solutions:
+                        subs[unresolved[0]] = solutions[0]
                         continue
+                except Exception:
+                    pass
+
+            if unresolved:
+                still_remaining.append(eq)
+
+        # Substitute known values into remaining equations
+        if subs and still_remaining:
+            new_remaining = []
+            for eq in still_remaining:
+                eq_sub = eq.subs(subs)
+                if eq_sub == True:  # noqa: E712
+                    continue
+                new_remaining.append(eq_sub)
+            still_remaining = new_remaining
+
+        remaining_eqs = still_remaining
 
     return subs
 
