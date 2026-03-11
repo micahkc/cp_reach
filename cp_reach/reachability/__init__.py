@@ -36,7 +36,7 @@ from .cascaded import (
     compute_omega_from_R,
     euler_equation_jacobians,
     se23_kinematic_matrices,
-    se23_kinematic_matrices_augmented,
+    se23_kinematic_matrices_augmented,  # legacy; prefer 9x9 with separate disturbance channels
     se23_controller_matrices,
 )
 

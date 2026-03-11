@@ -862,12 +862,15 @@ def quadrotor_flatness(
     mass: float,
     g: float = 9.80665,
     yaw_ref: Optional[np.ndarray] = None,
+    snap_ref: Optional[np.ndarray] = None,
+    inertia: Optional[np.ndarray] = None,
 ) -> Dict[str, np.ndarray]:
     """
     Compute full quadrotor reference from position trajectory using differential flatness.
 
     Given a position trajectory and its derivatives, computes the reference
-    rotation matrix, angular velocity, thrust, and feedforward moments.
+    rotation matrix, angular velocity (analytically from jerk), thrust, and
+    optionally angular acceleration and moment feedforward (from snap).
 
     Parameters
     ----------
@@ -878,15 +881,19 @@ def quadrotor_flatness(
     mass : float, quadrotor mass
     g : float, gravity magnitude
     yaw_ref : (N,) optional yaw reference (default: 0)
+    snap_ref : (N, 3) optional snap (4th derivative) in NED, for alpha computation
+    inertia : (3,) optional [Ixx, Iyy, Izz] for moment feedforward computation
 
     Returns
     -------
     dict with:
         'R_ref': (N, 3, 3) rotation matrices
-        'omega_ref': (N, 3) body angular velocity
+        'omega_ref': (N, 3) body angular velocity (analytical)
         'T_ref': (N,) thrust magnitude
         'a_body_ref': (N, 3) body-frame acceleration [0, 0, -T/m]
         'v_ref': (N, 3) world-frame velocity (pass-through)
+        'alpha_ref': (N, 3) angular acceleration (if snap_ref provided)
+        'M_ff': (N, 3) moment feedforward (if snap_ref and inertia provided)
     """
     N = p_ref.shape[0]
     g_vec = np.array([0, 0, g])  # NED: gravity points down (+z)
@@ -897,67 +904,151 @@ def quadrotor_flatness(
     R_ref = np.zeros((N, 3, 3))
     omega_ref = np.zeros((N, 3))
     T_ref = np.zeros(N)
+    T_dot_ref = np.zeros(N)
     a_body_ref = np.zeros((N, 3))
 
     for k in range(N):
-        # Desired thrust vector in world frame
-        # v_dot = R a_body + g  =>  R a_body = a_ref - g_vec
-        # For NED: a_ref_corrected = a_ref - g_vec (subtract gravity)
+        # Thrust vector: F = mass * (a - g_vec), body z = -F/|F|
         thrust_vec = mass * (a_ref[k] - g_vec)
-
-        # Thrust magnitude
         T = np.linalg.norm(thrust_vec)
         T_ref[k] = T
 
         if T < 1e-8:
-            # Near-zero thrust: use identity rotation
             R_ref[k] = np.eye(3)
             a_body_ref[k] = np.array([0, 0, 0])
             continue
 
-        # Body z-axis (points along negative thrust in NED)
-        # In NED, thrust is along -z body axis, so body z = -thrust_dir
         z_B = -thrust_vec / T
 
-        # Desired heading direction
+        # Heading direction (zero yaw rate for now)
         x_C = np.array([np.cos(yaw_ref[k]), np.sin(yaw_ref[k]), 0])
 
-        # Body y-axis: perpendicular to z_B and heading
         y_B = np.cross(z_B, x_C)
         y_norm = np.linalg.norm(y_B)
         if y_norm < 1e-8:
-            # Degenerate case: heading aligned with thrust
             y_B = np.array([0, 1, 0])
         else:
             y_B = y_B / y_norm
 
-        # Body x-axis
         x_B = np.cross(y_B, z_B)
-
         R_ref[k] = np.column_stack([x_B, y_B, z_B])
-
-        # Body-frame acceleration: a_body = R^T (a_ref - g_vec) / mass... no.
-        # a_body = [0, 0, -T/m] since thrust is along body -z
         a_body_ref[k] = np.array([0, 0, -T / mass])
 
-    # Compute angular velocity from R_ref via numerical differentiation
-    # omega = vee(R^T R_dot)
-    dt_vals = np.diff(np.linspace(0, 1, N))  # placeholder, will use actual times
-    for k in range(1, N - 1):
-        if k == 0 or k == N - 1:
-            continue
-        # Central difference for R_dot
-        # This is a rough approximation; the caller should use actual dt
-        pass
+        # --- Analytical omega from jerk (Mellinger & Kumar 2011) ---
+        # thrust_vec_dot = mass * jerk
+        thrust_vec_dot = mass * jerk_ref[k]
 
-    # Return without omega for now — will compute in notebook with actual dt
-    return {
+        # T_dot = -z_B . thrust_vec_dot  (since thrust_vec = -T * z_B)
+        T_dot = -np.dot(z_B, thrust_vec_dot)
+        T_dot_ref[k] = T_dot
+
+        # z_B_dot = -(thrust_vec_dot - (z_B . thrust_vec_dot) * z_B) / T
+        #         = -(perpendicular component of thrust_vec_dot to z_B) / T
+        z_B_dot = -(thrust_vec_dot + T_dot * z_B) / T
+
+        # omega from z_B_dot = omega_y * x_B - omega_x * y_B
+        omega_ref[k, 0] = -np.dot(y_B, z_B_dot)
+        omega_ref[k, 1] = np.dot(x_B, z_B_dot)
+
+        # omega_z from yaw dynamics (for constant yaw, omega_z comes from
+        # the constraint that y_B stays perpendicular to x_C and z_B)
+        # For zero yaw_dot: h = cross(z_B, x_C), y_B = h/|h|
+        # h_dot = cross(z_B_dot, x_C)
+        h = np.cross(z_B, x_C)
+        h_norm = np.linalg.norm(h)
+        if h_norm > 1e-8:
+            h_dot = np.cross(z_B_dot, x_C)
+            y_B_dot = (h_dot - y_B * np.dot(y_B, h_dot)) / h_norm
+            omega_ref[k, 2] = -np.dot(x_B, y_B_dot)
+
+    result = {
         'R_ref': R_ref,
-        'omega_ref': omega_ref,  # zeros — compute externally with actual times
+        'omega_ref': omega_ref,
         'T_ref': T_ref,
         'a_body_ref': a_body_ref,
         'v_ref': v_ref,
     }
+
+    # --- Analytical alpha from snap (optional) ---
+    if snap_ref is not None:
+        alpha_ref = np.zeros((N, 3))
+        for k in range(N):
+            T = T_ref[k]
+            if T < 1e-8:
+                continue
+
+            z_B = R_ref[k, :, 2]
+            x_B = R_ref[k, :, 0]
+            y_B = R_ref[k, :, 1]
+
+            thrust_vec_dot = mass * jerk_ref[k]
+            thrust_vec_ddot = mass * snap_ref[k]
+            T_dot = T_dot_ref[k]
+
+            # z_B_dot (recompute)
+            z_B_dot = -(thrust_vec_dot + T_dot * z_B) / T
+
+            # T_ddot = -z_B_dot . thrust_vec_dot - z_B . thrust_vec_ddot
+            T_ddot = -np.dot(z_B_dot, thrust_vec_dot) - np.dot(z_B, thrust_vec_ddot)
+
+            # z_B_ddot from second derivative of z_B = -thrust_vec / T
+            z_B_ddot = (
+                -(thrust_vec_ddot + T_ddot * z_B + 2 * T_dot * z_B_dot) / T
+                + (thrust_vec_dot + T_dot * z_B) * T_dot / (T * T)
+            )
+
+            # z_B_ddot = R * ([alpha]_x * e3 + [omega]_x^2 * e3)
+            # [alpha]_x * e3 = [alpha_y, -alpha_x, 0]
+            # [omega]_x^2 * e3 = [ox*oz, oy*oz, -(ox^2+oy^2)]
+            # z_B_ddot = (alpha_y + ox*oz)*x_B + (-alpha_x + oy*oz)*y_B
+            #          + (-(ox^2+oy^2))*z_B
+            # => alpha_x = -(y_B . z_B_ddot) + oy*oz
+            #    alpha_y =  (x_B . z_B_ddot) - ox*oz
+            ox, oy, oz = omega_ref[k]
+            alpha_ref[k, 0] = -np.dot(y_B, z_B_ddot) + oy * oz
+            alpha_ref[k, 1] = np.dot(x_B, z_B_ddot) - ox * oz
+
+            # alpha_z from yaw (analogous to omega_z computation)
+            x_C = np.array([np.cos(yaw_ref[k]), np.sin(yaw_ref[k]), 0])
+            h = np.cross(z_B, x_C)
+            h_norm = np.linalg.norm(h)
+            if h_norm > 1e-8:
+                h_dot = np.cross(z_B_dot, x_C)
+                y_B_dot = (h_dot - y_B * np.dot(y_B, h_dot)) / h_norm
+                h_ddot = np.cross(z_B_ddot, x_C)
+                # d/dt(y_B) = (h_dot - y_B*(y_B.h_dot))/|h|
+                # d2/dt2 is complex; use the frame relation instead:
+                # y_B_dot = -omega_z * x_B + omega_x * z_B
+                # y_B_ddot = -alpha_z * x_B - omega_z * x_B_dot + alpha_x * z_B + omega_x * z_B_dot
+                # x_B_dot = omega_z * y_B - omega_y * z_B
+                # y_B_ddot . x_B = -alpha_z + omega_x * (z_B . x_B) = -alpha_z (if z_B perp x_B)
+                # Need y_B_ddot . x_B
+                # Numerically differentiate y_B_dot? No, use the relation.
+                # Actually for zero yaw:
+                # omega_z was from: omega_z = -x_B . y_B_dot
+                # alpha_z = -x_B . y_B_ddot - x_B_dot . y_B_dot
+                # x_B_dot = omega_z * y_B - omega_y * z_B
+                x_B_dot = oz * y_B - oy * z_B
+                # y_B_ddot from h:
+                h_norm_dot = np.dot(y_B, h_dot)  # d/dt(|h|) = (h.h_dot)/|h| = y_B . h_dot
+                y_B_ddot = (
+                    (h_ddot - y_B * np.dot(y_B, h_ddot)) / h_norm
+                    - 2 * h_norm_dot * y_B_dot / h_norm
+                    - (np.dot(y_B_dot, h_dot)) * y_B / h_norm
+                )
+                alpha_ref[k, 2] = -np.dot(x_B, y_B_ddot) - np.dot(x_B_dot, y_B_dot)
+
+        result['alpha_ref'] = alpha_ref
+
+        if inertia is not None:
+            Ixx, Iyy, Izz = inertia
+            M_ff = np.zeros((N, 3))
+            M_ff[:, 0] = Ixx * alpha_ref[:, 0]
+            M_ff[:, 1] = Iyy * alpha_ref[:, 1]
+            M_ff[:, 2] = Izz * alpha_ref[:, 2]
+            result['M_ff'] = M_ff
+
+    return result
 
 
 def compute_omega_from_R(R_ref: np.ndarray, times: np.ndarray) -> np.ndarray:
