@@ -1,0 +1,16 @@
+{
+  "model_name": "QuadrotorClosedLoop",
+  "lie_groups": [
+    {
+      "type": "SE23",
+      "description": "Kinematic subsystem on SE_2(3): rotation, velocity, position",
+      "rotation_states": ["R11", "R12", "R13", "R21", "R22", "R23", "R31", "R32", "R33"],
+      "velocity_states": ["vx", "vy", "vz"],
+      "position_states": ["px", "py", "pz"],
+      "body_angular_velocity": ["omega_x", "omega_y", "omega_z"],
+      "body_acceleration": ["a_x", "a_y", "a_z"],
+      "gravity_vector": [0, 0, 9.80665],
+      "lie_algebra_dimension": 9
+    }
+  ]
+}
