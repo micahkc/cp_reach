@@ -109,23 +109,25 @@ end Quadrotor;
 // =====================================================================
 // Closed-loop quadrotor with geometric tracking controller + feedforward
 //
+// Geometric controller (Lee, Leok, McClamroch 2010):
+//   Position feedback changes the desired force direction, which changes
+//   R_des. The attitude controller tracks R_des (not just R_ref).
+//   This closes the position -> attitude -> thrust direction loop,
+//   consistent with the SE_2(3) reachability analysis.
 //
 // Control structure:
 //   u_total = u_ff + u_fb
 //
 // Outer loop (translation):
-//   a_fb  = -Kp*e_p - Kv*e_v - Ki*integral(e_v)   (feedback correction)
-//   F_des = mass * (a_ref + a_fb - g_vec)           (total desired force)
-//   T     = -F_des . (R * e3)                       (project onto body z)
+//   a_fb    = -Kp*e_p - Kv*e_v - Ki*integral(e_v)
+//   F_des   = mass * (a_total - g_vec)
+//   T       = -F_des . (R * e3)
+//   R_des   = rotation aligning body z with -F_des / |F_des|
 //
 // Inner loop (rotation):
-//   e_R  = 0.5 * vee(R_ref^T R - R^T R_ref)        (geometric SO(3) error)
-//   e_w  = (omega + d) - omega_ref                   (rate error with disturbance)
-//   M    = M_ff - I*(Kr*e_R + Kw*e_w) + omega x I*omega  (moments)
-//
-// With zero error and zero disturbance, a_fb = 0 and the feedforward
-// (a_ref, omega_ref, M_ff) alone drives the system along the reference.
-// This is consistent with the SE_2(3) flowpipe reachability analysis.
+//   e_R  = 0.5 * vee(R_des^T R - R^T R_des)
+//   e_w  = (omega + d) - omega_ref
+//   M    = M_ff - I*(Kr*e_R + Kw*e_w) + omega x I*omega
 //
 // States (from Quadrotor): px,py,pz, vx,vy,vz, R[9], omega[3] = 18
 // States (added): vel_err_ix, vel_err_iy, vel_err_iz = 3  (total: 21)
@@ -173,12 +175,12 @@ model QuadrotorClosedLoop2
   input Real vz_ref "Reference velocity Z [m/s]";
 
   // Acceleration feedforward (world frame, from differential flatness)
-  // At hover: [0, 0, 0]. During trajectory: planned acceleration.
   input Real ax_ref "Reference acceleration X [m/s^2]";
   input Real ay_ref "Reference acceleration Y [m/s^2]";
   input Real az_ref "Reference acceleration Z [m/s^2]";
 
   // Rotation matrix reference (body-to-world), for hover: identity
+  // Used for yaw direction (b1_c) and feedforward angular rate/moments
   input Real R11_ref(start = 1) "Reference R(1,1)";
   input Real R12_ref(start = 0) "Reference R(1,2)";
   input Real R13_ref(start = 0) "Reference R(1,3)";
@@ -236,12 +238,28 @@ model QuadrotorClosedLoop2
   Real a_total_y "Total desired acceleration Y [m/s^2]";
   Real a_total_z "Total desired acceleration Z [m/s^2]";
 
-  // Attitude error via vee map: e_R = 0.5 * vee(R_ref^T * R - R^T * R_ref)
+  // Desired force (world frame)
+  Real F_des_x "Desired force X [N]";
+  Real F_des_y "Desired force Y [N]";
+  Real F_des_z "Desired force Z [N]";
+  Real F_norm "Desired force magnitude [N]";
+
+  // Desired rotation R_des computed from F_des direction + yaw from R_ref
+  // b3_des = -F_des / |F_des| (desired body z, aligns thrust with -F_des)
+  Real b3_x, b3_y, b3_z;
+  // b1_c = first column of R_ref (desired heading direction from flatness)
+  // b2_des = normalize(b3_des x b1_c)
+  Real b2_unnorm_x, b2_unnorm_y, b2_unnorm_z, b2_norm;
+  Real b2_x, b2_y, b2_z;
+  // b1_des = b2_des x b3_des
+  Real b1_x, b1_y, b1_z;
+
+  // Attitude error via vee map: e_R = 0.5 * vee(R_des^T * R - R^T * R_des)
   Real e_Rx "Attitude error about X (roll) [rad]";
   Real e_Ry "Attitude error about Y (pitch) [rad]";
   Real e_Rz "Attitude error about Z (yaw) [rad]";
 
-  // Elements of R_ref^T * R (for vee map computation)
+  // Elements of R_des^T * R (for vee map computation)
   Real S11, S12, S13;
   Real S21, S22, S23;
   Real S31, S32, S33;
@@ -281,40 +299,73 @@ equation
 
   // =================================================================
   // Total desired acceleration = feedforward + feedback
-  // With zero error: a_total = a_ref (follows reference exactly)
   // =================================================================
   a_total_x = ax_ref + a_fb_x;
   a_total_y = ay_ref + a_fb_y;
   a_total_z = az_ref + a_fb_z;
 
   // =================================================================
-  // Thrust: project desired force onto body Z axis
+  // Desired force and R_des (geometric controller)
   //
-  //   F_des = mass * (a_total - g_vec)
-  //   T     = -F_des . (R * e3)
+  //   F_des = mass * (a_total - g_vec), g_vec = [0, 0, g] in NED
+  //   b3_des = -F_des / |F_des|  (body z opposes desired force)
+  //   b1_c = R_ref * e1           (yaw direction from flatness)
+  //   b2_des = normalize(b3_des x b1_c)
+  //   b1_des = b2_des x b3_des
+  //   R_des = [b1_des | b2_des | b3_des]
   //
-  // where R*e3 = [R13, R23, R33] and g_vec = [0, 0, g] in NED.
-  // At hover (a_total=0, R=I): T = mass*g. Correct.
+  // At hover (a_total=0): F_des = [0, 0, -mg], b3_des = [0,0,1],
+  //   R_des = I. Correct.
   // =================================================================
-  T = -mass * (a_total_x * R13 + a_total_y * R23 + (a_total_z - g) * R33);
+  F_des_x = mass * a_total_x;
+  F_des_y = mass * a_total_y;
+  F_des_z = mass * (a_total_z - g);
+  F_norm = sqrt(F_des_x*F_des_x + F_des_y*F_des_y + F_des_z*F_des_z);
+
+  // b3_des: desired body z-axis (points opposite to desired force)
+  b3_x = -F_des_x / F_norm;
+  b3_y = -F_des_y / F_norm;
+  b3_z = -F_des_z / F_norm;
+
+  // b2_des = normalize(b3_des x b1_c), where b1_c = R_ref first column
+  b2_unnorm_x = b3_y * R31_ref - b3_z * R21_ref;
+  b2_unnorm_y = b3_z * R11_ref - b3_x * R31_ref;
+  b2_unnorm_z = b3_x * R21_ref - b3_y * R11_ref;
+  b2_norm = sqrt(b2_unnorm_x*b2_unnorm_x + b2_unnorm_y*b2_unnorm_y + b2_unnorm_z*b2_unnorm_z);
+  b2_x = b2_unnorm_x / b2_norm;
+  b2_y = b2_unnorm_y / b2_norm;
+  b2_z = b2_unnorm_z / b2_norm;
+
+  // b1_des = b2_des x b3_des
+  b1_x = b2_y * b3_z - b2_z * b3_y;
+  b1_y = b2_z * b3_x - b2_x * b3_z;
+  b1_z = b2_x * b3_y - b2_y * b3_x;
+
+  // =================================================================
+  // Thrust: project desired force onto body Z axis
+  //   T = -F_des . (R * e3), where R*e3 = [R13, R23, R33]
+  // =================================================================
+  T = -(F_des_x * R13 + F_des_y * R23 + F_des_z * R33);
 
   // =================================================================
   // Attitude error: geometric SO(3) error via vee map
   //
-  // S = R_ref^T * R  (relative rotation)
-  // e_R = 0.5 * vee(S - S^T)  (extracts rotation vector for small angles)
+  //   S = R_des^T * R  (relative rotation from R_des to actual R)
+  //   e_R = 0.5 * vee(S - S^T)
+  //
+  // R_des = [b1 | b2 | b3], so R_des^T has rows b1^T, b2^T, b3^T.
   // =================================================================
 
-  // Compute S = R_ref^T * R
-  S11 = R11_ref*R11 + R21_ref*R21 + R31_ref*R31;
-  S12 = R11_ref*R12 + R21_ref*R22 + R31_ref*R32;
-  S13 = R11_ref*R13 + R21_ref*R23 + R31_ref*R33;
-  S21 = R12_ref*R11 + R22_ref*R21 + R32_ref*R31;
-  S22 = R12_ref*R12 + R22_ref*R22 + R32_ref*R32;
-  S23 = R12_ref*R13 + R22_ref*R23 + R32_ref*R33;
-  S31 = R13_ref*R11 + R23_ref*R21 + R33_ref*R31;
-  S32 = R13_ref*R12 + R23_ref*R22 + R33_ref*R32;
-  S33 = R13_ref*R13 + R23_ref*R23 + R33_ref*R33;
+  // Compute S = R_des^T * R
+  S11 = b1_x*R11 + b1_y*R21 + b1_z*R31;
+  S12 = b1_x*R12 + b1_y*R22 + b1_z*R32;
+  S13 = b1_x*R13 + b1_y*R23 + b1_z*R33;
+  S21 = b2_x*R11 + b2_y*R21 + b2_z*R31;
+  S22 = b2_x*R12 + b2_y*R22 + b2_z*R32;
+  S23 = b2_x*R13 + b2_y*R23 + b2_z*R33;
+  S31 = b3_x*R11 + b3_y*R21 + b3_z*R31;
+  S32 = b3_x*R12 + b3_y*R22 + b3_z*R32;
+  S33 = b3_x*R13 + b3_y*R23 + b3_z*R33;
 
   // Vee map: extract rotation error from skew-symmetric part of S
   // vee([0, -c, b; c, 0, -a; -b, a, 0]) = [a, b, c]
@@ -334,11 +385,7 @@ equation
   // Moments: feedforward + geometric attitude + rate PD + gyroscopic
   //
   // Gyroscopic compensation: cancels the -(omega x J*omega) coupling
-  // in Euler's equations. The x-component of (omega x J*omega) is
-  // (Izz - Iyy)*omega_y*omega_z, so we add that to M to cancel.
-  //
-  // With Mx_ff = Ixx*alpha_x_ref and zero error:
-  //   Ixx*alpha_x = Mx_ff + (Izz-Iyy)*wy*wz + (Iyy-Izz)*wy*wz = Mx_ff ✓
+  // in Euler's equations.
   // =================================================================
   Mx = Mx_ff - Ixx*(Kr_x*e_Rx + Kw_x*e_wx) + (Izz - Iyy)*omega_y*omega_z;
   My = My_ff - Iyy*(Kr_y*e_Ry + Kw_y*e_wy) + (Ixx - Izz)*omega_x*omega_z;
