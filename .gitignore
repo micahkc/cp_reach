@@ -25,5 +25,22 @@ dist/
 *.swp
 .DS_Store
 
+# Generated outputs
+examples/**/output*/
+*.png
+*.tex
+
+# Compiled IR outputs
+examples/**/*.json
+
+# Debug/scratch scripts
+debug_*.py
+
+# AI assistant config
+CLAUDE.md
+
+# Disabled CI
+*.disabled
+
 # Development examples
 examples/development/

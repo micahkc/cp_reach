@@ -1,8 +1,0 @@
-casadi>=3.7.0
-control>=0.10.1
-cvxpy>=1.6.0
-matplotlib>=3.6.3
-numpy>=1.24.0
-pandas>=2.0.0
-scipy>=1.10.0
-sympy>=1.13.0
