@@ -1,0 +1,16 @@
+# Keep the build context small and deterministic. Anything not needed to
+# install cp_reach or run its example notebooks is excluded.
+.git
+.github
+.venv
+venv
+**/__pycache__
+*.py[cod]
+*.egg-info
+build
+dist
+.ipynb_checkpoints
+**/output*/
+*.swp
+.DS_Store
+CLAUDE.md

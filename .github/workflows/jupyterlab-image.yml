@@ -1,0 +1,85 @@
+name: JupyterLab Image
+
+# Build, validate, and publish the self-contained cp_reach JupyterLab image to
+# the GitHub Container Registry (GHCR). The image is validated by running the
+# test suite *inside it* before anything is pushed, so a broken image can never
+# reach the registry.
+
+on:
+  release:
+    types: [published]
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: jupyterlab-image-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image name and version tag
+        id: meta
+        run: |
+          owner="${{ github.repository_owner }}"
+          echo "image=ghcr.io/${owner,,}/cp_reach-jupyter" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "release" ]; then
+            version="${{ github.event.release.tag_name }}"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            version="${{ github.ref_name }}"
+          else
+            version="dev-${GITHUB_SHA::7}"
+          fi
+          echo "version=${version#v}" >> "$GITHUB_OUTPUT"
+
+      # Build to the local docker daemon (no push yet) so we can test it.
+      # rumoca only has an x86_64 wheel, so the image is linux/amd64 only.
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}
+            ${{ steps.meta.outputs.image }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Bulletproof gate: prove the baked environment actually works before we
+      # publish. Import smoke test + the (non-slow) test suite, run in-image.
+      - name: Validate image
+        env:
+          IMAGE: ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}
+        run: |
+          docker run --rm "$IMAGE" \
+            python -c "import cp_reach, rumoca, cyecca, jupyterlab; print('imports OK')"
+          docker run --rm "$IMAGE" \
+            jupyter lab --version
+          docker run --rm "$IMAGE" \
+            pytest tests/ -m "not slow"
+
+      - name: Push images
+        run: |
+          docker push "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}"
+          docker push "${{ steps.meta.outputs.image }}:latest"

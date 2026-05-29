@@ -1,0 +1,55 @@
+name: Notebooks
+
+# Executes the example notebooks end-to-end (compile -> reachability -> plots)
+# to catch regressions in the documented workflows. Needs Python 3.12 on a
+# glibc >= 2.39 runner because rumoca's only Linux wheel is
+# cp312/manylinux_2_39/x86_64 (ubuntu-24.04 provides both).
+#
+# Only the notebooks that currently pass are gated. The following are
+# EXCLUDED until fixed (verified against rumoca 0.8.12) -- add them back to the
+# pytest invocation below once they run clean:
+#   examples/general/quadrotor_casadi.ipynb
+#       uses rumoca.generate_code(), removed from the rumoca API
+#   examples/general/structured_workflow.ipynb
+#       rumoca.compile() -> "EP001: unexpected `models`" (API/parse change)
+#   examples/general/structured_quadrotor.ipynb
+#       rumoca-API failure
+#   examples/general/generalized_lie_groups.ipynb
+#       exceeds the per-cell timeout (hangs / very slow)
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run-notebooks:
+    runs-on: ubuntu-24.04
+    env:
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install cp_reach + notebook tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[all]" rumoca nbmake ipykernel
+
+      - name: Execute notebooks
+        run: |
+          pytest --nbmake -p no:cacheprovider --nbmake-timeout=600 -v \
+            examples/quadrotor/quadrotor_flowpipe.ipynb \
+            examples/rover/rover_plots.ipynb \
+            examples/satellite/satellite_error_bounds.ipynb \
+            examples/general/structured_nonlinear.ipynb
