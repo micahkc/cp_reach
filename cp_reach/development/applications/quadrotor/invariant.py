@@ -8,11 +8,12 @@ from cp_reach.reachability import ellipsoids
 def solve_nested(
     vel_dist,
     accel_dist,
-    ang_accel_dist,
-    ref,
+    ang_accel_dist=0.0,
+    ref=None,
     dynamics_sol=None,
     kinematics_sol=None,
     pid_values=None,
+    gravity=9.8,
 ):
     """
     Compute reachable sets for a quadrotor under bounded disturbances in
@@ -39,8 +40,16 @@ def solve_nested(
         Precomputed solution to angular dynamics Lyapunov LMI.
     kinematics_sol : dict, optional
         Precomputed solution to SE(2,3) kinematics Lyapunov LMI.
-    pid_values : optional
-        Controller parameters (if you want to use PID-based A_cl/B_d construction).
+    pid_values : dict, optional
+        If provided, uses the PI rate-loop model with explicit inertia.
+        Required keys:
+            J        : scalar | (3,) | (3,3) inertia (kg·m²)
+            Kp       : scalar | (3,) | (3,3) proportional rate gain
+            Ki       : scalar | (3,) | (3,3) integral rate gain (0 for P-only)
+            tau_dist : float — sup-norm bound on torque disturbance (N·m)
+        When set, ang_accel_dist is ignored.
+    gravity : float
+        Gravitational acceleration used for thrust-deviation bookkeeping (m/s²).
 
     Returns
     -------
@@ -61,7 +70,7 @@ def solve_nested(
             },
         }
     """
-    g = 9.8  # gravity
+    g = float(gravity)
 
     # ===================== Reference-derived bounds =====================
     if ref is None:
@@ -83,19 +92,27 @@ def solve_nested(
         omega_max = [omega1, omega2, omega3]
 
     # ===================== Dynamics-level (angular) =====================
-    if dynamics_sol is None:
-        # Solve for angular velocity invariant set
-        # The angular acceleration module has solve_inv_set which takes Kdq (proportional gain)
-        # Use a default proportional gain for angular velocity control
-        Kdq = 10.0  # Default proportional gain for angular velocity control
-        dynamics_sol = angular_acceleration.solve_inv_set(Kdq)
+    if pid_values is not None:
+        dist_for_scaling = float(pid_values["tau_dist"])
+        if dynamics_sol is None:
+            dynamics_sol = angular_acceleration.solve_inv_set_pi(
+                J=pid_values["J"],
+                Kp=pid_values["Kp"],
+                Ki=pid_values.get("Ki", 0.0),
+                tau_dist=dist_for_scaling,
+            )
+    else:
+        dist_for_scaling = float(ang_accel_dist)
+        if dynamics_sol is None:
+            Kdq = 10.0  # default proportional gain for legacy path
+            dynamics_sol = angular_acceleration.solve_inv_set(Kdq)
 
     # Find invariant set for disturbances
     mu1_dyn = dynamics_sol["mu1"]
     P_dyn = dynamics_sol["P"]
 
     # Scale so that ellipsoid is {x: x^T P_dyn_scaled x <= 1}
-    val_dyn = mu1_dyn * ang_accel_dist**2
+    val_dyn = mu1_dyn * dist_for_scaling**2
     P_dyn_scaled = P_dyn / val_dyn
     r_dyn = np.sqrt(val_dyn)
 

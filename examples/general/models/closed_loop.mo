@@ -19,6 +19,7 @@ model ClosedLoop
   input Real u_ff "Feedforward control [N]";
   input Real d "Disturbance force [N]";
 
+
   // Plant states
   Real x(start = 0) "Position [m]";
   Real v(start = 0) "Velocity [m/s]";
