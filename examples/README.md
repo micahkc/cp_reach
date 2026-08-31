@@ -57,5 +57,6 @@ workflow.
 - A Monte Carlo trajectory crossing a limit is a useful counterexample or test
   case.
 - Monte Carlo trajectories remaining inside a limit are not a proof of safety.
-- Reachability does not establish a cyber access path or exploit. Validate that
-  part of the hypothesis in CP_GLIMPSE or another high-fidelity environment.
+- Reachability does not establish a cyber access path or exploit. Evaluate the
+  hypothesis with the appropriate higher-fidelity Modelica variant from the
+  shared CP_GLIMPSE model family.

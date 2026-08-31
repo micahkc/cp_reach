@@ -14,7 +14,8 @@ CP_REACH compiles a Modelica plant/controller model with RuMoCA, converts its
 DAE representation to symbolic state-space dynamics, computes reachable-set
 bounds, and plots those bounds alongside simulated trajectories. The result is
 an analysis artifact that helps an engineer prioritize hypotheses for
-high-fidelity testing; it is not, by itself, proof that a cyber exploit exists.
+evaluation with more detailed model variants; it is not, by itself, proof that
+a cyber exploit exists.
 
 ## Analysis workflow
 
@@ -29,8 +30,9 @@ high-fidelity testing; it is not, by itself, proof that a cyber exploit exists.
    when theoretical analysis is cumbersome.
 5. Inspect the flow-tube against safety-relevant state limits. A potential
    intersection becomes a vulnerability hypothesis to investigate.
-6. Exercise the hypothesis in CP_GLIMPSE or another high-fidelity environment,
-   then use the results to refine the model and disturbance assumptions.
+6. Evaluate the hypothesis with the appropriate higher-fidelity Modelica
+   variant from the shared CP_GLIMPSE model family, then use the result to
+   refine the model and disturbance assumptions.
 
 Formal over-approximations and sampled simulation answer different questions.
 An LMI certificate can bound all disturbances covered by its assumptions.
