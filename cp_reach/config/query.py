@@ -46,10 +46,14 @@ Example YAML format:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union
 from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from cp_reach.ir import RumocaSymbolicModel
+    from cp_reach.planning.trajectory import Trajectory
 
 try:
     import yaml
@@ -192,8 +196,6 @@ class TrajectorySpec:
         Trajectory
             The loaded or generated trajectory
         """
-        from cp_reach.planning.trajectory import Trajectory
-
         if self.source == "file":
             return self._load_from_file(base_path)
         else:
@@ -272,7 +274,6 @@ class TrajectorySpec:
         If velocities/accelerations are not provided at a waypoint, zero is used.
         """
         from cp_reach.planning import plan_minimum_derivative_trajectory
-        from cp_reach.planning.trajectory import Trajectory
 
         waypoints = np.array(self.waypoints)  # (n_waypoints, n_dim)
         n_waypoints, n_dim = waypoints.shape
@@ -482,14 +483,14 @@ class ReachQuery:
 
         return args
 
-    def validate_against_ir(self, ir: "DaeIR") -> List[str]:
+    def validate_against_model(self, model: "RumocaSymbolicModel") -> List[str]:
         """
-        Validate query against a DaeIR.
+        Validate query names against a compiled Rumoca model.
 
         Parameters
         ----------
-        ir : DaeIR
-            DAE IR to validate against
+        model : RumocaSymbolicModel
+            Compiled Modelica model to validate against
 
         Returns
         -------
@@ -499,14 +500,14 @@ class ReachQuery:
         warnings = []
 
         # Check outputs
-        available_outputs = set(ir.algebraics.keys()) | set(ir.states.keys())
+        available_outputs = set(model.export.variable_expressions)
         for name in self.outputs:
             if name not in available_outputs:
-                warnings.append(f"Output '{name}' not found in IR")
+                warnings.append(f"Output '{name}' not found in model")
 
         # Check disturbance inputs
         for name in self.dist_inputs:
-            if name not in ir.inputs:
-                warnings.append(f"Disturbance input '{name}' not found in IR inputs")
+            if name not in model.inputs:
+                warnings.append(f"Disturbance input '{name}' not found in model inputs")
 
         return warnings

@@ -14,10 +14,10 @@ model ClosedLoop
   parameter Real kd = 0.8 "Derivative gain";
 
   // External inputs (reference trajectory is an input, not internal states)
-  input Real x_ref "Reference position [m]";
-  input Real v_ref "Reference velocity [m/s]";
-  input Real u_ff "Feedforward control [N]";
-  input Real d "Disturbance force [N]";
+  input Real x_ref = 0.0 "Reference position [m]";
+  input Real v_ref = 0.0 "Reference velocity [m/s]";
+  input Real u_ff = 0.0 "Feedforward control [N]";
+  input Real d = 0.0 "Disturbance force [N]";
 
   // Plant states
   Real x(start = 0) "Position [m]";

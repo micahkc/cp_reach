@@ -1,9 +1,7 @@
 name: Tests
 
-# Unit tests for the cp_reach library. The full notebook/rumoca pipeline is
-# exercised separately in notebooks.yml (which needs Python 3.12 + glibc 2.39);
-# these unit tests don't import rumoca/cyecca, so they run on a broad range of
-# modern Python versions.
+# Unit tests for the cp_reach library. The full notebook pipeline is exercised
+# separately in notebooks.yml.
 
 on:
   push:

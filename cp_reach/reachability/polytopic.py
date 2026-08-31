@@ -11,18 +11,18 @@ Key functions:
 - project_metric_2d: Project metric to 2D subspace via Schur complement
 """
 
+from typing import Optional
+
+import cvxpy as cp
 import numpy as np
 import sympy as sp
-import cvxpy as cp
 from scipy.optimize import fminbound
-from typing import Optional
 
 
 def polytopic_jacobians(
     J_sym: sp.Matrix,
-    ref_vals: np.ndarray | dict[sp.Symbol, np.ndarray],
-    err_bounds: float | dict[sp.Symbol, float],
-    state_symbols: list[sp.Symbol],
+    ref_vals: dict[sp.Symbol, np.ndarray],
+    err_bounds: dict[sp.Symbol, float],
 ) -> list[list[np.ndarray]]:
     """
     Compute polytopic Jacobian bounds at reference trajectory points.
@@ -36,17 +36,10 @@ def polytopic_jacobians(
     J_sym : sympy.Matrix
         Symbolic Jacobian matrix J(x) = ∂f/∂x with parameters already substituted.
         Should still contain the nonlinear state variable(s).
-    ref_vals : np.ndarray or dict[sp.Symbol, np.ndarray]
-        Reference trajectory values at sample times. Either:
-        - 1D array of shape (N,) for single-variable case (uses first state symbol)
-        - Dict mapping state symbols to their reference trajectories, each shape (N,)
-    err_bounds : float or dict[sp.Symbol, float]
-        Half-width of the polytopic bounds. Either:
-        - Single float for single-variable case (applies to first state symbol)
-        - Dict mapping state symbols to their error bounds
-    state_symbols : list[sp.Symbol]
-        List of sympy symbols for states that appear nonlinearly in J.
-        For backwards compatibility, if ref_vals is an array, uses first element.
+    ref_vals : dict[sp.Symbol, np.ndarray]
+        State symbols mapped to reference trajectories of shape ``(N,)``.
+    err_bounds : dict[sp.Symbol, float]
+        State symbols mapped to their error half-widths.
 
     Returns
     -------
@@ -57,10 +50,12 @@ def polytopic_jacobians(
 
     Example
     -------
-    Single nonlinear state (backwards compatible):
+    Single nonlinear state:
     >>> J_sym = sp.Matrix([[0, 1], [-sp.cos(theta), -c]])
     >>> theta_refs = np.array([0.0, 0.5, 1.0])
-    >>> polytopes = polytopic_jacobians(J_sym, theta_refs, 0.1, [theta])
+    >>> polytopes = polytopic_jacobians(
+    ...     J_sym, {theta: theta_refs}, {theta: 0.1}
+    ... )
     >>> len(polytopes)  # One polytope per reference point
     3
     >>> len(polytopes[0])  # Two vertices per polytope
@@ -70,29 +65,20 @@ def polytopic_jacobians(
     >>> J_sym = sp.Matrix([[sp.sin(x1), sp.cos(x2)], [0, -1]])
     >>> refs = {x1: np.array([0.0, 0.5]), x2: np.array([1.0, 1.5])}
     >>> bounds = {x1: 0.1, x2: 0.2}
-    >>> polytopes = polytopic_jacobians(J_sym, refs, bounds, [x1, x2])
+    >>> polytopes = polytopic_jacobians(J_sym, refs, bounds)
     >>> len(polytopes[0])  # Four vertices (2^2) per polytope
     4
     """
     import itertools
 
-    # Handle backwards-compatible single-variable case
-    if not isinstance(ref_vals, dict):
-        # Single array/list provided - use first state symbol
-        nonlinear_symbols = [state_symbols[0]]
-        ref_vals_dict = {state_symbols[0]: np.asarray(ref_vals)}
-    else:
-        ref_vals_dict = ref_vals
-        nonlinear_symbols = list(ref_vals_dict.keys())
-
-    if isinstance(err_bounds, (int, float)):
-        # Single bound provided - apply to all nonlinear symbols
-        err_bounds_dict = {sym: float(err_bounds) for sym in nonlinear_symbols}
-    else:
-        err_bounds_dict = err_bounds
+    nonlinear_symbols = list(ref_vals)
+    if not nonlinear_symbols:
+        raise ValueError("ref_vals must contain at least one nonlinear state")
+    if set(err_bounds) != set(nonlinear_symbols):
+        raise ValueError("ref_vals and err_bounds must contain the same state symbols")
 
     # Get number of time samples from first reference trajectory
-    first_ref = next(iter(ref_vals_dict.values()))
+    first_ref = next(iter(ref_vals.values()))
     N = len(first_ref)
 
     # Build polytope vertices at each time point
@@ -106,8 +92,8 @@ def polytopic_jacobians(
         for signs in itertools.product([-1, 1], repeat=n_vars):
             subs_dict = {}
             for sym, sign in zip(nonlinear_symbols, signs):
-                ref_val = ref_vals_dict[sym][i]
-                err = err_bounds_dict[sym]
+                ref_val = ref_vals[sym][i]
+                err = err_bounds[sym]
                 subs_dict[sym] = ref_val + sign * err
 
             J_eval = J_sym.subs(subs_dict)

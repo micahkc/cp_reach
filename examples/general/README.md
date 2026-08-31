@@ -4,9 +4,9 @@ The verified general workflow is:
 
 ```text
 Modelica source
-  -> RuMoCA 0.9.20 Session
-  -> DAE schema 7 JSON
-  -> CP_REACH symbolic state space
+  -> RuMoCA 0.10 checked Solve IR
+  -> CP Reach SymPy target
+  -> symbolic state space
   -> disturbance model
   -> reachable-set bound and flow-tube
   -> cyber-physical vulnerability hypothesis
@@ -32,23 +32,21 @@ The notebook compiles that source through the current RuMoCA Python API:
 import tempfile
 from pathlib import Path
 
-import rumoca
-
-from cp_reach.ir import DaeIR, ir_to_symbolic_statespace
+from cp_reach.ir import modelica_loads
 
 model_name = "PendulumClosedLoop"
 model_path = Path("models/pendulum_closed_loop.mo").resolve()
 
 with tempfile.TemporaryDirectory() as workspace:
-    model = rumoca.Session(roots=[], workspace=workspace).loads(
+    model = modelica_loads(
         model_path.read_text(),
-        model=model_name,
+        model_name=model_name,
         filename=model_path.name,
+        roots=[],
+        workspace=workspace,
     )
-    dae_json = model.to_json("dae")
 
-ir = DaeIR.from_json_str(dae_json, model_name=model_name)
-state_space = ir_to_symbolic_statespace(ir)
+state_space = model.symbolic
 ```
 
 An isolated RuMoCA workspace is intentional. RuMoCA discovers Modelica classes

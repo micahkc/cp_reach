@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Dict, Optional
 
 import numpy as np
 
@@ -155,11 +154,10 @@ class SymbolicStateSpace:
 
     Examples
     --------
-    >>> from cyecca.backends.sympy import SympyBackend
-    >>> from cp_reach.dynamics.state_space import extract_symbolic_statespace
+    >>> from cp_reach.ir import modelica_load
     >>>
-    >>> backend = SympyBackend.from_file('Model.mo')
-    >>> ss = extract_symbolic_statespace(backend, output_names=['y1', 'y2'])
+    >>> model = modelica_load('Model.mo', output_names=['y1', 'y2'])
+    >>> ss = model.symbolic
     >>>
     >>> # View symbolic dynamics
     >>> print(ss.f)      # Drift dynamics f(x, p, t)
@@ -558,7 +556,7 @@ class SymbolicStateSpace:
                     C_inv = C_sym.inv()
                 else:
                     C_inv = C_sym.pinv()
-                E_sym = (E_sym * C_inv).simplify() if hasattr(E_sym, "simplify") else E_sym * C_inv
+                E_sym = sp.simplify(E_sym * C_inv)
             except Exception as e:
                 # If inversion fails, keep state-based Jacobian
                 logger.debug(f"Could not invert output matrix C for algebraic substitution: {e}")
@@ -656,7 +654,8 @@ class SymbolicStateSpace:
 
         Examples
         --------
-        >>> ss = ir_to_symbolic_statespace(ir)
+        >>> from cp_reach.ir import modelica_load
+        >>> ss = modelica_load("Model.mo").symbolic
         >>> err = ss.get_error_dynamics(disturbance_inputs=['d'])
         >>> J = err['J']  # Jacobian (may contain sin(theta) etc.)
         >>> B_d = err['B_d']  # Disturbance matrix
@@ -800,236 +799,3 @@ class SymbolicStateSpace:
     def get_state_names(self) -> list[str]:
         """Return list of state names as strings."""
         return [str(s) for s in self.state_symbols]
-
-
-def extract_symbolic_statespace(
-    sympy_backend,
-    output_names: Optional[list[str]] = None,
-    simplify: bool = True
-) -> SymbolicStateSpace:
-    """
-    Extract symbolic state-space representation from a SymPy backend.
-
-    Returns a SymbolicStateSpace object with drift dynamics and control inputs separated:
-    ẋ = f(x, p, t) + Bu(t)
-    y = h(x, p, t) + Du(t)
-
-    Parameters
-    ----------
-    sympy_backend : SympyBackend
-        The SymPy backend instance (from cyecca.backends.sympy)
-    output_names : list[str], optional
-        List of algebraic variable names to use as outputs.
-        If None, h and Du are not computed.
-    simplify : bool, default=True
-        Whether to simplify the resulting symbolic expressions
-
-    Returns
-    -------
-    SymbolicStateSpace
-        Container with symbolic state-space representation including:
-        - f: drift dynamics f(x, p, t) (control-free part)
-        - Bu: control input vector Bu(t)
-        - h: output drift h(x, p, t) (if output_names provided)
-        - Du: output feedthrough Du(t) (if output_names provided)
-
-        Methods:
-        - f_sub(params): substitute parameters into f
-        - h_sub(params): substitute parameters into h
-        - A(params, bounds): compute state Jacobian (numpy array or polytope vertices)
-        - B(): compute input Jacobian
-        - C(params, bounds): compute output-state Jacobian
-        - D(): compute output-input Jacobian
-
-    Examples
-    --------
-    >>> from cyecca.backends.sympy import SympyBackend
-    >>> from cp_reach.dynamics.state_space import extract_symbolic_statespace
-    >>>
-    >>> # Load model with SymPy backend
-    >>> backend = SympyBackend.from_file('MassSpringPD.mo')
-    >>>
-    >>> # Extract symbolic state-space
-    >>> ss = extract_symbolic_statespace(
-    ...     backend,
-    ...     output_names=['e', 'ev'],  # Optional outputs
-    ...     simplify=True
-    ... )
-    >>>
-    >>> # Access drift dynamics and control inputs
-    >>> print("Drift dynamics f(x,p,t):")
-    >>> import sympy as sp
-    >>> sp.pprint(ss.f)
-    >>> print("Control input Bu:")
-    >>> sp.pprint(ss.Bu)
-    >>>
-    >>> # Substitute parameters
-    >>> f_numeric = ss.f_sub({'m': 1.0, 'c': 0.2, 'k': 1.0})
-    >>>
-    >>> # Get state Jacobian (linear system returns numpy array)
-    >>> A_numeric = ss.A({'m': 1.0, 'c': 0.2, 'k': 1.0})
-    >>>
-    >>> # For nonlinear systems, provide bounds for polytopic approximation
-    >>> import sympy as sp
-    >>> A_vertices = ss.A(
-    ...     {'m': 1.0, 'c': 0.2, 'k': 1.0},
-    ...     bounds={sp.Symbol('x'): [-1, 1], sp.Symbol('v'): [-2, 2]}
-    ... )
-    """
-    try:
-        import sympy as sp
-    except ImportError:
-        raise ImportError("sympy is required for symbolic state-space extraction")
-
-    # Build state derivative vector f(x, u, p) and compute Jacobians manually
-    # This avoids beartype issues with the backend methods
-    state_symbols = [sympy_backend.symbols[var.name] for var in sympy_backend.model.states]
-    input_symbols = [sympy_backend.symbols[var.name] for var in sympy_backend.model.inputs]
-    param_symbols = [sympy_backend.symbols[var.name] for var in sympy_backend.model.parameters]
-
-    # Build substitution dictionary for algebraic variables
-    # This is CRITICAL for capturing feedback terms in the A matrix
-    alg_subs = {}
-    for var_name, expr in sympy_backend.algebraic.items():
-        if var_name in sympy_backend.symbols:
-            alg_subs[sympy_backend.symbols[var_name]] = expr
-
-    # Recursively expand algebraic expressions (e.g., u_fb depends on e and ev)
-    max_iterations = 10
-    for _ in range(max_iterations):
-        changed = False
-        for sym, expr in list(alg_subs.items()):
-            new_expr = expr.subs(alg_subs)
-            if new_expr != expr:
-                alg_subs[sym] = new_expr
-                changed = True
-        if not changed:
-            break
-
-    # Build derivative expressions with algebraic substitutions
-    full_exprs = []
-    for var in sympy_backend.model.states:
-        if var.name in sympy_backend.derivatives:
-            # Substitute algebraic variables into derivatives
-            expr = sympy_backend.derivatives[var.name].subs(alg_subs)
-            full_exprs.append(expr)
-
-    full_f = sp.Matrix(full_exprs)
-
-    # Separate drift dynamics (f) from control inputs (Bu)
-    # f contains terms independent of inputs, Bu contains input-dependent terms
-    f_drift_exprs = []
-    Bu_exprs = []
-
-    for expr in full_exprs:
-        # Expand expression to handle cases like (u_ff + d)/m
-        expr_expanded = sp.expand(expr)
-
-        # Separate into drift and control terms using as_coefficients_dict
-        # This properly handles terms divided by parameters
-        coeff_dict = expr_expanded.as_coefficients_dict()
-
-        drift_part = sp.S.Zero
-        control_part = sp.S.Zero
-
-        for term, coeff in coeff_dict.items():
-            # Check if this term contains any input symbols
-            term_free_symbols = term.free_symbols
-            if any(input_sym in term_free_symbols for input_sym in input_symbols):
-                control_part += coeff * term
-            else:
-                drift_part += coeff * term
-
-        f_drift_exprs.append(drift_part)
-        Bu_exprs.append(control_part)
-
-    f = sp.Matrix(f_drift_exprs)
-    Bu = sp.Matrix(Bu_exprs)
-
-    if simplify:
-        f = sp.simplify(f)
-        Bu = sp.simplify(Bu)
-
-    # Compute output matrices if requested
-    h = None
-    Du = None
-    output_symbols = None
-
-    if output_names is not None:
-        full_h_exprs = []
-        output_symbols = []
-        missing_outputs = []
-
-        for output_name in output_names:
-            if output_name in sympy_backend.algebraic:
-                full_h_exprs.append(sympy_backend.algebraic[output_name])
-                output_symbols.append(sp.Symbol(output_name))
-            else:
-                missing_outputs.append(output_name)
-
-        # Raise error if any requested outputs were not found
-        if missing_outputs:
-            available = list(sympy_backend.algebraic.keys())
-            raise ValueError(
-                f"Output names {missing_outputs} not found in model algebraic variables. "
-                f"Available algebraic variables: {available}"
-            )
-
-        if full_h_exprs:
-            full_h = sp.Matrix(full_h_exprs)
-
-            # Separate output drift (h) from feedthrough (Du)
-            h_drift_exprs = []
-            Du_exprs = []
-
-            for expr in full_h_exprs:
-                # Expand expression to handle cases with fractions
-                expr_expanded = sp.expand(expr)
-
-                # Separate using as_coefficients_dict
-                coeff_dict = expr_expanded.as_coefficients_dict()
-
-                drift_part = sp.S.Zero
-                feedthrough_part = sp.S.Zero
-
-                for term, coeff in coeff_dict.items():
-                    term_free_symbols = term.free_symbols
-                    if any(input_sym in term_free_symbols for input_sym in input_symbols):
-                        feedthrough_part += coeff * term
-                    else:
-                        drift_part += coeff * term
-
-                h_drift_exprs.append(drift_part)
-                Du_exprs.append(feedthrough_part)
-
-            h = sp.Matrix(h_drift_exprs)
-            Du = sp.Matrix(Du_exprs)
-
-            if simplify:
-                h = sp.simplify(h)
-                Du = sp.simplify(Du)
-
-    # Extract parameter defaults from backend
-    param_defaults = {}
-    if hasattr(sympy_backend, 'parameter_defaults'):
-        param_defaults = sympy_backend.parameter_defaults.copy()
-    elif hasattr(sympy_backend, 'model') and hasattr(sympy_backend.model, 'parameters'):
-        # Try to extract from model parameters
-        for param in sympy_backend.model.parameters:
-            if hasattr(param, 'start') and param.start is not None:
-                param_defaults[param.name] = param.start
-
-    measurement_dynamics = getattr(sympy_backend, "measurement_dynamics", None)
-
-    return SymbolicStateSpace(
-        f=f,
-        Bu=Bu,
-        h=h,
-        Du=Du,
-        measurement_dynamics=measurement_dynamics,
-        state_symbols=state_symbols,
-        input_symbols=input_symbols,
-        param_symbols=param_symbols,
-        output_symbols=output_symbols,
-        param_defaults=param_defaults,
-    )

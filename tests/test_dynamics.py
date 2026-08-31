@@ -254,20 +254,10 @@ class TestSymbolicStateSpaceWithOutputs:
         """Test measurement dynamics E matrix."""
         ss = system_with_outputs
 
-        try:
-            E = ss.E()
-        except (AttributeError, TypeError):
-            # E() may fail if measurement dynamics weren't built
-            # This is acceptable - not all systems have computable E
-            return
+        E = ss.E()
 
-        # E may be None if measurement dynamics cannot be computed
-        # (e.g., h doesn't depend on all states that have dynamics)
-        if E is not None:
-            # For this system, E = C @ A @ C_inv (or similar)
-            # Just check shape
-            if isinstance(E, np.ndarray):
-                assert E.shape[0] == 2  # 2 outputs
+        assert E is not None
+        assert E.shape == (2, 2)
 
     def test_F_matrix(self, system_with_outputs):
         """Test measurement dynamics F matrix."""

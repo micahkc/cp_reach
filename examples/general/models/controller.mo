@@ -5,11 +5,11 @@ model Controller
   parameter Real kp = 10.0 "Proportional gain";
   parameter Real kd = 2.0 "Derivative gain";
 
-  input Real x "Current position [m]";
-  input Real v "Current velocity [m/s]";
-  input Real x_ref "Reference position [m]";
-  input Real v_ref "Reference velocity [m/s]";
-  input Real u_ff "Feedforward control [N]";
+  input Real x = 0.0 "Current position [m]";
+  input Real v = 0.0 "Current velocity [m/s]";
+  input Real x_ref = 0.0 "Reference position [m]";
+  input Real v_ref = 0.0 "Reference velocity [m/s]";
+  input Real u_ff = 0.0 "Feedforward control [N]";
 
   output Real F "Control force [N]";
   output Real e "Position error [m]";

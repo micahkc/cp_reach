@@ -6,8 +6,8 @@ model MassSpringDamper "Plant: Mass-spring-damper system"
   parameter Real c = 0.2 "Damping coefficient [N*s/m]";
   parameter Real k = 1.0 "Spring constant [N/m]";
 
-  input Real F "Applied force [N]";
-  input Real d "Disturbance force [N]";
+  input Real F = 0.0 "Applied force [N]";
+  input Real d = 0.0 "Disturbance force [N]";
 
   Real x(start = 0) "Position [m]";
   Real v(start = 0) "Velocity [m/s]";
@@ -25,11 +25,11 @@ model PDController "Controller: PD with feedforward"
   parameter Real kp = 10.0 "Proportional gain";
   parameter Real kd = 2.0 "Derivative gain";
 
-  input Real x_ref "Reference position";
-  input Real v_ref "Reference velocity";
-  input Real x_meas "Measured position";
-  input Real v_meas "Measured velocity";
-  input Real u_ff "Feedforward";
+  input Real x_ref = 0.0 "Reference position";
+  input Real v_ref = 0.0 "Reference velocity";
+  input Real x_meas = 0.0 "Measured position";
+  input Real v_meas = 0.0 "Measured velocity";
+  input Real u_ff = 0.0 "Feedforward";
 
   output Real F "Control force";
 
@@ -47,10 +47,10 @@ model ClosedLoopComposed "Composed closed-loop system"
   PDController controller;
 
   // External inputs
-  input Real x_ref "Reference position";
-  input Real v_ref "Reference velocity";
-  input Real u_ff "Feedforward control";
-  input Real d "Disturbance";
+  input Real x_ref = 0.0 "Reference position";
+  input Real v_ref = 0.0 "Reference velocity";
+  input Real u_ff = 0.0 "Feedforward control";
+  input Real d = 0.0 "Disturbance";
 
   // Outputs (tracking errors)
   output Real e "Position error";

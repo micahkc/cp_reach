@@ -156,41 +156,41 @@ model QuadrotorClosedLoop
   // Reference inputs
   // -----------------------------------------------------------------
   // Position and velocity reference (world frame)
-  input Real px_ref "Reference position X [m]";
-  input Real py_ref "Reference position Y [m]";
-  input Real pz_ref "Reference position Z [m]";
-  input Real vx_ref "Reference velocity X [m/s]";
-  input Real vy_ref "Reference velocity Y [m/s]";
-  input Real vz_ref "Reference velocity Z [m/s]";
+  input Real px_ref = 0.0 "Reference position X [m]";
+  input Real py_ref = 0.0 "Reference position Y [m]";
+  input Real pz_ref = 0.0 "Reference position Z [m]";
+  input Real vx_ref = 0.0 "Reference velocity X [m/s]";
+  input Real vy_ref = 0.0 "Reference velocity Y [m/s]";
+  input Real vz_ref = 0.0 "Reference velocity Z [m/s]";
 
   // Rotation matrix reference (body-to-world), for hover: identity
-  input Real R11_ref(start = 1) "Reference R(1,1)";
-  input Real R12_ref(start = 0) "Reference R(1,2)";
-  input Real R13_ref(start = 0) "Reference R(1,3)";
-  input Real R21_ref(start = 0) "Reference R(2,1)";
-  input Real R22_ref(start = 1) "Reference R(2,2)";
-  input Real R23_ref(start = 0) "Reference R(2,3)";
-  input Real R31_ref(start = 0) "Reference R(3,1)";
-  input Real R32_ref(start = 0) "Reference R(3,2)";
-  input Real R33_ref(start = 1) "Reference R(3,3)";
+  input Real R11_ref(start = 1) = 1.0 "Reference R(1,1)";
+  input Real R12_ref(start = 0) = 0.0 "Reference R(1,2)";
+  input Real R13_ref(start = 0) = 0.0 "Reference R(1,3)";
+  input Real R21_ref(start = 0) = 0.0 "Reference R(2,1)";
+  input Real R22_ref(start = 1) = 1.0 "Reference R(2,2)";
+  input Real R23_ref(start = 0) = 0.0 "Reference R(2,3)";
+  input Real R31_ref(start = 0) = 0.0 "Reference R(3,1)";
+  input Real R32_ref(start = 0) = 0.0 "Reference R(3,2)";
+  input Real R33_ref(start = 1) = 1.0 "Reference R(3,3)";
 
   // Angular rate reference (body frame)
-  input Real omega_x_ref "Reference roll rate [rad/s]";
-  input Real omega_y_ref "Reference pitch rate [rad/s]";
-  input Real omega_z_ref "Reference yaw rate [rad/s]";
+  input Real omega_x_ref = 0.0 "Reference roll rate [rad/s]";
+  input Real omega_y_ref = 0.0 "Reference pitch rate [rad/s]";
+  input Real omega_z_ref = 0.0 "Reference yaw rate [rad/s]";
 
   // Feedforward thrust and moments
-  input Real T_ff "Feedforward thrust [N]";
-  input Real Mx_ff "Feedforward roll moment [N*m]";
-  input Real My_ff "Feedforward pitch moment [N*m]";
-  input Real Mz_ff "Feedforward yaw moment [N*m]";
+  input Real T_ff = 0.0 "Feedforward thrust [N]";
+  input Real Mx_ff = 0.0 "Feedforward roll moment [N*m]";
+  input Real My_ff = 0.0 "Feedforward pitch moment [N*m]";
+  input Real Mz_ff = 0.0 "Feedforward yaw moment [N*m]";
 
   // -----------------------------------------------------------------
   // Disturbance inputs (acoustic attack injection on gyro measurement)
   // -----------------------------------------------------------------
-  input Real d_p "Disturbance on roll rate measurement [rad/s]";
-  input Real d_q "Disturbance on pitch rate measurement [rad/s]";
-  input Real d_r "Disturbance on yaw rate measurement [rad/s]";
+  input Real d_p = 0.0 "Disturbance on roll rate measurement [rad/s]";
+  input Real d_q = 0.0 "Disturbance on pitch rate measurement [rad/s]";
+  input Real d_r = 0.0 "Disturbance on yaw rate measurement [rad/s]";
 
   // -----------------------------------------------------------------
   // Integrator states (velocity error integral for PI control)

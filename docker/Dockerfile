@@ -7,10 +7,8 @@
 # cp_reach stack pre-installed. Run the container, open the printed URL, and
 # use the CI-gated notebooks in examples/ with no network access.
 #
-# RuMoCA 0.9.20 requires Python >= 3.10, and its Linux wheels target
-# manylinux_2_39. Ubuntu 24.04 supplies Python 3.12 and glibc 2.39. RuMoCA also
-# publishes an aarch64 wheel, but this image is currently built and tested only
-# for linux/amd64.
+# CP Reach supports RuMoCA 0.10.x and Python >= 3.10. This image uses Python
+# 3.12 and is currently built and tested only for linux/amd64.
 # ---------------------------------------------------------------------------
 FROM ubuntu:24.04
 
@@ -58,7 +56,7 @@ COPY --chown=${NB_USER}:${NB_USER} . /home/${NB_USER}/work
 
 # Pre-bake every dependency so the running container needs no network:
 #   cp_reach[all]                 -> the library and its full feature set,
-#                                    including the pinned RuMoCA version
+#                                    including RuMoCA 0.10
 #   jupyterlab + ipykernel        -> the server/editor itself
 #   jupyterlab-lsp + pylsp        -> offline code intelligence (completion,
 #                                    hover, diagnostics) for .py and notebooks

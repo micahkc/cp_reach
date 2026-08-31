@@ -9,8 +9,8 @@ Start with
 [`general/structured_nonlinear.ipynb`](general/structured_nonlinear.ipynb). It
 shows the full Modelica-to-flow-tube path for a controlled nonlinear pendulum:
 
-1. compile the Modelica source through a RuMoCA 0.9.20 `Session`;
-2. load DAE schema 7 into CP_REACH;
+1. compile the Modelica source through RuMoCA 0.10;
+2. render checked Solve IR directly into CP Reach's symbolic state space;
 3. identify the bounded disturbance input;
 4. construct time-varying polytopic dynamics;
 5. compute and continuously check LMI bounds;

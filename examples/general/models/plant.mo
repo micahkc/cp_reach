@@ -7,8 +7,8 @@ model Plant
   parameter Real c = 0.2 "Damping coefficient [N*s/m]";
   parameter Real k = 1.0 "Spring constant [N/m]";
 
-  input Real F "Control force [N]";
-  input Real d "Disturbance force [N]";
+  input Real F = 0.0 "Control force [N]";
+  input Real d = 0.0 "Disturbance force [N]";
 
   output Real x(start = 0) "Position [m]";
   output Real v(start = 0) "Velocity [m/s]";

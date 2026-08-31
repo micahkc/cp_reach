@@ -1,93 +1,79 @@
-"""
-CP_Reach Command Line Interface.
-
-This module provides a CLI for running reachability analysis using the
-structured IR + YAML workflow.
-
-Usage:
-    cp_reach analyze --ir model.json --uncertainty uncertainty.yaml --query query.yaml
-    cp_reach validate --ir model.json
-    cp_reach info --ir model.json
-"""
+"""Command-line interface for Rumoca 0.10 Modelica analysis."""
 
 from __future__ import annotations
 
 import argparse
 import sys
-from pathlib import Path
+
+
+def _add_model_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--modelica",
+        required=True,
+        help="Path to the Modelica source file",
+    )
+    parser.add_argument(
+        "--model",
+        help="Qualified model name when the source contains multiple models",
+    )
+    parser.add_argument(
+        "--root",
+        action="append",
+        default=[],
+        help="Additional Modelica package root (repeatable)",
+    )
+    parser.add_argument(
+        "--workspace",
+        help="Rumoca workspace directory",
+    )
 
 
 def create_parser() -> argparse.ArgumentParser:
     """Create the argument parser."""
     parser = argparse.ArgumentParser(
         prog="cp_reach",
-        description="CP_Reach: Certified reachability analysis for control systems",
+        description="CP Reach: certified reachability analysis for Modelica systems",
     )
-
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
-    # analyze command
-    analyze_parser = subparsers.add_parser(
-        "analyze",
-        help="Run reachability analysis",
-    )
-    analyze_parser.add_argument(
-        "--ir",
-        required=True,
-        help="Path to Rumoca DAE IR JSON file",
-    )
-    analyze_parser.add_argument(
-        "--uncertainty",
-        help="Path to uncertainty YAML file",
-    )
-    analyze_parser.add_argument(
-        "--query",
-        help="Path to query YAML file",
-    )
+    analyze_parser = subparsers.add_parser("analyze", help="Run reachability analysis")
+    _add_model_arguments(analyze_parser)
+    analyze_parser.add_argument("--uncertainty", help="Path to uncertainty YAML")
+    analyze_parser.add_argument("--query", help="Path to reachability query YAML")
     analyze_parser.add_argument(
         "--output",
         "-o",
         default="results/",
-        help="Output directory for results (default: results/)",
+        help="Output directory (default: results/)",
     )
-    analyze_parser.add_argument(
-        "--verbose",
-        "-v",
-        action="store_true",
-        help="Verbose output",
-    )
+    analyze_parser.add_argument("--verbose", "-v", action="store_true")
 
-    # validate command
     validate_parser = subparsers.add_parser(
-        "validate",
-        help="Validate IR and configuration files",
+        "validate", help="Compile the model and validate its configuration"
     )
-    validate_parser.add_argument(
-        "--ir",
-        required=True,
-        help="Path to Rumoca DAE IR JSON file",
-    )
-    validate_parser.add_argument(
-        "--uncertainty",
-        help="Path to uncertainty YAML file",
-    )
-    validate_parser.add_argument(
-        "--query",
-        help="Path to query YAML file",
-    )
+    _add_model_arguments(validate_parser)
+    validate_parser.add_argument("--uncertainty", help="Path to uncertainty YAML")
+    validate_parser.add_argument("--query", help="Path to reachability query YAML")
 
-    # info command
-    info_parser = subparsers.add_parser(
-        "info",
-        help="Display model information",
-    )
-    info_parser.add_argument(
-        "--ir",
-        required=True,
-        help="Path to Rumoca DAE IR JSON file",
-    )
-
+    info_parser = subparsers.add_parser("info", help="Display compiled model information")
+    _add_model_arguments(info_parser)
     return parser
+
+
+def _load_model(args, output_names=None):
+    from cp_reach.ir import modelica_load
+
+    return modelica_load(
+        args.modelica,
+        model_name=args.model,
+        roots=args.root or None,
+        workspace=args.workspace,
+        output_names=output_names,
+    )
+
+
+def _compiled_name(model, fallback: str) -> str:
+    return getattr(model.rumoca, "name", None) or fallback
 
 
 def cmd_analyze(args) -> int:
@@ -96,50 +82,37 @@ def cmd_analyze(args) -> int:
 
     try:
         if args.verbose:
-            print(f"Loading IR from: {args.ir}")
+            print(f"Compiling Modelica source: {args.modelica}")
+            if args.model:
+                print(f"Model: {args.model}")
             if args.uncertainty:
-                print(f"Loading uncertainty from: {args.uncertainty}")
+                print(f"Uncertainty: {args.uncertainty}")
             if args.query:
-                print(f"Loading query from: {args.query}")
-            print(f"Output directory: {args.output}")
+                print(f"Query: {args.query}")
 
         result = analyze(
-            ir_path=args.ir,
+            modelica_path=args.modelica,
+            model_name=args.model,
+            roots=args.root or None,
+            workspace=args.workspace,
             uncertainty_path=args.uncertainty,
             query_path=args.query,
             output_dir=args.output,
         )
-
-        # Print summary
         print(f"\nAnalysis complete for model: {result.get('model_name', 'Unknown')}")
         print(f"  Status: {result.get('status', 'unknown')}")
-
         if "alpha" in result:
             print(f"  Alpha (decay rate): {result['alpha']:.4f}")
-
         if "mu" in result:
             mu = result["mu"]
-            if hasattr(mu, "__iter__"):
-                print(f"  Mu (magnification): {mu[0]:.4f}")
-            else:
-                print(f"  Mu (magnification): {mu:.4f}")
-
+            value = mu[0] if hasattr(mu, "__iter__") else mu
+            print(f"  Mu (magnification): {value:.4f}")
         if "bounds_upper" in result:
-            bounds = result["bounds_upper"]
-            print(f"  Upper bounds: {bounds}")
-
-        if "radius_inf" in result:
-            print(f"  Radius (inf-norm): {result['radius_inf']:.4f}")
-
+            print(f"  Upper bounds: {result['bounds_upper']}")
         print(f"\nResults saved to: {args.output}")
-
         return 0
-
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
-    except Exception as e:
-        print(f"Error during analysis: {e}", file=sys.stderr)
+    except Exception as exc:
+        print(f"Error during analysis: {exc}", file=sys.stderr)
         if args.verbose:
             import traceback
 
@@ -148,64 +121,38 @@ def cmd_analyze(args) -> int:
 
 
 def cmd_validate(args) -> int:
-    """Validate IR and configuration files."""
-    from cp_reach.ir.loader import DaeIR
-    from cp_reach.config.uncertainty import UncertaintySpec
+    """Compile a Modelica model and validate configuration names."""
     from cp_reach.config.query import ReachQuery
+    from cp_reach.config.uncertainty import UncertaintySpec
 
     errors = []
-    warnings = []
-
-    # Validate IR
+    notices = []
     try:
-        ir = DaeIR.from_json(args.ir)
-        print(f"IR file: {args.ir}")
-        print(f"  Model: {ir.model_name}")
-        print(f"  States: {ir.n_states()}")
-        print(f"  Inputs: {ir.n_inputs()}")
-        print(f"  Parameters: {ir.n_parameters()}")
-        print(f"  Equations: {len(ir.equations)}")
-    except Exception as e:
-        errors.append(f"Failed to load IR: {e}")
-        ir = None
+        uncertainty = (
+            UncertaintySpec.from_yaml(args.uncertainty) if args.uncertainty else UncertaintySpec()
+        )
+        query = ReachQuery.from_yaml(args.query) if args.query else ReachQuery()
+        model = _load_model(args, output_names=query.outputs or None)
+        notices.extend(uncertainty.validate_against_model(model))
+        notices.extend(query.validate_against_model(model))
 
-    # Validate uncertainty
-    if args.uncertainty and ir:
-        try:
-            unc = UncertaintySpec.from_yaml(args.uncertainty)
-            print(f"\nUncertainty file: {args.uncertainty}")
-            print(f"  Disturbances: {list(unc.disturbances.keys())}")
-            print(f"  Parameters: {list(unc.parameters.keys())}")
+        print(f"Modelica source: {args.modelica}")
+        print(f"  Model: {_compiled_name(model, args.model or args.modelica)}")
+        print(f"  States: {len(model.states)}")
+        print(f"  Inputs: {len(model.inputs)}")
+        print(f"  Parameters: {len(model.parameters)}")
+        print(f"  Algebraics: {len(model.export.algebraic_names)}")
+    except Exception as exc:
+        errors.append(str(exc))
 
-            unc_warnings = unc.validate_against_ir(ir)
-            warnings.extend(unc_warnings)
-        except Exception as e:
-            errors.append(f"Failed to load uncertainty: {e}")
-
-    # Validate query
-    if args.query and ir:
-        try:
-            query = ReachQuery.from_yaml(args.query)
-            print(f"\nQuery file: {args.query}")
-            print(f"  Type: {query.type}")
-            print(f"  Dynamics: {query.dynamics}")
-            print(f"  Outputs: {query.outputs}")
-
-            query_warnings = query.validate_against_ir(ir)
-            warnings.extend(query_warnings)
-        except Exception as e:
-            errors.append(f"Failed to load query: {e}")
-
-    # Report results
-    if warnings:
+    if notices:
         print("\nWarnings:")
-        for w in warnings:
-            print(f"  - {w}")
-
+        for message in notices:
+            print(f"  - {message}")
     if errors:
         print("\nErrors:")
-        for e in errors:
-            print(f"  - {e}")
+        for message in errors:
+            print(f"  - {message}")
         return 1
 
     print("\nValidation passed!")
@@ -213,72 +160,54 @@ def cmd_validate(args) -> int:
 
 
 def cmd_info(args) -> int:
-    """Display model information."""
-    from cp_reach.ir.loader import DaeIR
-
+    """Display information from Rumoca's checked Solve export."""
     try:
-        ir = DaeIR.from_json(args.ir)
+        model = _load_model(args)
+        export = model.export
+        print(f"Model: {_compiled_name(model, args.model or args.modelica)}")
+        print("Rumoca: 0.10.x")
 
-        print(f"Model: {ir.model_name}")
-        print(f"RuMoCA DAE schema: {ir.schema_version}")
-        print()
-
-        print("States:")
-        for name, comp in ir.states.items():
-            start_str = f" = {comp.start}" if comp.start is not None else ""
-            print(f"  {name}: {comp.type_name}{start_str}")
+        print("\nStates:")
+        for name, default in zip(export.state_names, export.default_states):
+            print(f"  {name} = {default}")
 
         print("\nInputs:")
-        for name, comp in ir.inputs.items():
-            print(f"  {name}: {comp.type_name}")
+        for name in export.input_names:
+            print(f"  {name}")
 
         print("\nParameters:")
-        for name, comp in ir.parameters.items():
-            start_str = f" = {comp.start}" if comp.start is not None else ""
-            print(f"  {name}: {comp.type_name}{start_str}")
+        for name, default in model.parameters.items():
+            print(f"  {name} = {default}")
 
-        if ir.algebraics:
+        if export.algebraic_names:
             print("\nAlgebraic variables:")
-            for name, comp in ir.algebraics.items():
-                print(f"  {name}: {comp.type_name}")
+            for name in export.algebraic_names:
+                print(f"  {name}")
 
-        print(f"\nEquations: {len(ir.equations)}")
+        if export.output_names:
+            print("\nOutputs:")
+            for name in export.output_names:
+                print(f"  {name}")
 
-        # Infer roles
-        roles = ir.infer_roles()
-        if roles:
-            unique_roles = set(roles.values())
-            print(f"\nInferred component roles: {unique_roles}")
-
+        print(f"\nExplicit ODEs: {export.rhs.rows}")
         return 0
-
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
-    except Exception as e:
-        print(f"Error loading IR: {e}", file=sys.stderr)
+    except Exception as exc:
+        print(f"Error compiling model: {exc}", file=sys.stderr)
         return 1
 
 
 def main(argv=None) -> int:
-    """Main entry point."""
+    """Run the requested command."""
     parser = create_parser()
     args = parser.parse_args(argv)
-
     if args.command is None:
         parser.print_help()
         return 0
-
     if args.command == "analyze":
         return cmd_analyze(args)
-    elif args.command == "validate":
+    if args.command == "validate":
         return cmd_validate(args)
-    elif args.command == "info":
+    if args.command == "info":
         return cmd_info(args)
-    else:
-        parser.print_help()
-        return 1
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+    parser.print_help()
+    return 1

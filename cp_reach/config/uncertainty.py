@@ -30,10 +30,13 @@ Example YAML format:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union
 from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from cp_reach.ir import RumocaSymbolicModel
 
 try:
     import yaml
@@ -362,16 +365,16 @@ class UncertaintySpec:
         """Get all nominal parameter values as a dict."""
         return {name: p.nominal for name, p in self.parameters.items()}
 
-    def validate_against_ir(self, ir: "DaeIR") -> List[str]:
+    def validate_against_model(self, model: "RumocaSymbolicModel") -> List[str]:
         """
-        Validate uncertainty spec against a DaeIR.
+        Validate uncertainty names against a compiled Rumoca model.
 
-        Checks that all referenced variables exist in the IR.
+        Checks that all referenced variables exist in the symbolic export.
 
         Parameters
         ----------
-        ir : DaeIR
-            DAE IR to validate against
+        model : RumocaSymbolicModel
+            Compiled Modelica model to validate against
 
         Returns
         -------
@@ -379,20 +382,21 @@ class UncertaintySpec:
             List of warning messages (empty if all valid)
         """
         warnings = []
+        variables = set(model.export.variable_expressions)
 
         # Check disturbances
         for name in self.disturbances:
-            if name not in ir.inputs:
-                warnings.append(f"Disturbance '{name}' not found in IR inputs")
+            if name not in model.inputs:
+                warnings.append(f"Disturbance '{name}' not found in model inputs")
 
         # Check parameters
         for name in self.parameters:
-            if name not in ir.parameters:
-                warnings.append(f"Parameter '{name}' not found in IR parameters")
+            if name not in model.parameters:
+                warnings.append(f"Parameter '{name}' not found in model parameters")
 
         # Check initial conditions
         for name in self.initial_conditions:
-            if name not in ir.states and name not in ir.algebraics:
-                warnings.append(f"Initial condition '{name}' not found in IR")
+            if name not in variables:
+                warnings.append(f"Initial condition '{name}' not found in model")
 
         return warnings
