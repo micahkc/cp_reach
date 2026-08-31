@@ -1,6 +1,6 @@
 [project]
 name = "cp_reach"
-version = "0.2.0"
+version = "0.2.1"
 description = "Reachability Analysis Library for Cyber-Physical Systems"
 authors = [{ name = "Micah Condie", email = "mkcondie01@gmail.com" }]
 readme = "README.md"
