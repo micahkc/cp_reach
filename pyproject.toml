@@ -5,7 +5,7 @@ description = "Reachability Analysis Library for Cyber-Physical Systems"
 authors = [{ name = "Micah Condie", email = "mkcondie01@gmail.com" }]
 readme = "README.md"
 license = { text = "Apache-2.0" }
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 
 dependencies = [
     "casadi>=3.7.0",
@@ -14,6 +14,8 @@ dependencies = [
     "matplotlib>=3.6.3",
     "numpy>=1.24.0",
     "pandas>=2.0.0",
+    # SCS 3.3.0 was yanked because its x86_64 wheel crashes on first solve.
+    "scs>=3.2.4,!=3.3.0",
     "scipy>=1.10.0",
     "sympy>=1.13.0",
 ]
@@ -30,6 +32,9 @@ dev = [
 satellite = [
     "cyecca>=0.1.0",
 ]
+modelica = [
+    "rumoca==0.9.20",
+]
 docs = [
     "sphinx>=6.0.0",
     "sphinx-rtd-theme>=1.2.0",
@@ -37,7 +42,7 @@ docs = [
     "myst-parser>=1.0.0",
 ]
 all = [
-    "cp_reach[dev,satellite,docs]",
+    "cp_reach[dev,satellite,modelica,docs]",
 ]
 
 [project.urls]
@@ -54,7 +59,7 @@ where = ["."]
 
 [tool.black]
 line-length = 100
-target-version = ['py38', 'py39', 'py310', 'py311']
+target-version = ['py310', 'py311', 'py312']
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -85,8 +90,7 @@ markers = [
 ]
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
-

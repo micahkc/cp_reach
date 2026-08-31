@@ -51,7 +51,7 @@ jobs:
           echo "version=${version#v}" >> "$GITHUB_OUTPUT"
 
       # Build to the local docker daemon (no push yet) so we can test it.
-      # rumoca only has an x86_64 wheel, so the image is linux/amd64 only.
+      # The published image is intentionally tested and supported on amd64.
       - name: Build image
         uses: docker/build-push-action@v6
         with:

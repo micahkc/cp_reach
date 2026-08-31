@@ -22,12 +22,14 @@ def stable_4x4_system():
     """A stable 4x4 system representing plant + controller for error dynamics testing."""
     # Simple stable 4x4 diagonal-dominant system
     # All eigenvalues are negative (stable)
-    A = np.array([
-        [-2.0, 0.5, 0.0, 0.0],
-        [0.0, -1.5, 0.3, 0.0],
-        [0.0, 0.0, -1.0, 0.2],
-        [0.0, 0.0, 0.0, -0.8],
-    ])
+    A = np.array(
+        [
+            [-2.0, 0.5, 0.0, 0.0],
+            [0.0, -1.5, 0.3, 0.0],
+            [0.0, 0.0, -1.0, 0.2],
+            [0.0, 0.0, 0.0, -0.8],
+        ]
+    )
     B = np.array([[1.0], [0.0], [0.0], [0.0]])
     C = np.array([[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0]])
     D = np.zeros((2, 1))
@@ -46,60 +48,49 @@ def polytopic_vertices():
 
 @pytest.fixture
 def simple_ir_dict():
-    """A minimal DAE IR dictionary for testing the loader."""
+    """A minimal RuMoCA 0.9.20 DAE schema-7 dictionary."""
     return {
-        "model_name": "TestModel",
-        "rumoca_version": "0.7.0",
+        "schema_version": 7,
         "x": {
             "x1": {
                 "name": "x1",
-                "type_name": {"name": [{"text": "Real"}]},
-                "variability": "Empty",
-                "causality": "Empty",
-                "shape": [],
-                "start": {"Terminal": {"token": {"text": "0.0"}}},
+                "causality": "local",
+                "dims": [],
+                "start": {"Literal": {"value": {"Real": 0.0}}},
             },
             "x2": {
                 "name": "x2",
-                "type_name": {"name": [{"text": "Real"}]},
-                "variability": "Empty",
-                "causality": "Empty",
-                "shape": [],
-                "start": {"Terminal": {"token": {"text": "0.0"}}},
+                "causality": "local",
+                "dims": [],
+                "start": {"Literal": {"value": {"Real": 0.0}}},
             },
         },
         "y": {
             "y1": {
                 "name": "y1",
-                "type_name": {"name": [{"text": "Real"}]},
-                "variability": "Empty",
-                "causality": "Empty",
-                "shape": [],
-                "start": "Empty",
+                "causality": "output",
+                "dims": [],
+                "start": None,
             },
         },
         "u": {
             "d": {
                 "name": "d",
-                "type_name": {"name": [{"text": "Real"}]},
-                "variability": "Empty",
-                "causality": {"Input": {}},
-                "shape": [],
-                "start": "Empty",
+                "causality": "input",
+                "dims": [],
+                "start": None,
             },
         },
         "p": {
             "k": {
                 "name": "k",
-                "type_name": {"name": [{"text": "Real"}]},
-                "variability": {"Parameter": {}},
-                "causality": "Empty",
-                "shape": [],
-                "start": {"Terminal": {"token": {"text": "1.0"}}},
+                "causality": "local",
+                "dims": [],
+                "start": {"Literal": {"value": {"Real": 1.0}}},
             },
         },
-        "cp": {},
-        "fx": [],
-        "fx_init": [],
-        "fz": [],
+        "constants": {},
+        "f_x": [],
+        "initial_equations": [],
+        "f_z": [],
     }

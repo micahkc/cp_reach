@@ -1,16 +1,24 @@
 """
-CP_Reach IR Module - Load and convert Rumoca DAE JSON to SymbolicStateSpace.
+CP_REACH IR module: load RuMoCA 0.9.20 DAE schema 7.
 
-This module provides a direct path from Rumoca's DAE IR JSON format to
-CP_Reach's symbolic representations, bypassing cyecca for simpler deployments.
+This module converts current RuMoCA DAE JSON to CP_REACH symbolic state-space
+representations.
 
 Example usage:
+    import tempfile
+    from pathlib import Path
+
     import rumoca
     from cp_reach.ir import DaeIR, ir_to_symbolic_statespace
 
     # Compile Modelica and load IR
-    result = rumoca.compile("closed_loop.mo")
-    ir = DaeIR.from_json_str(result.to_base_modelica_json())
+    source_path = Path("closed_loop.mo").resolve()
+    with tempfile.TemporaryDirectory() as workspace:
+        model = rumoca.Session(roots=[], workspace=workspace).loads(
+            source_path.read_text(), model="ClosedLoop", filename=source_path.name
+        )
+        dae_json = model.to_json("dae")
+    ir = DaeIR.from_json_str(dae_json, model_name="ClosedLoop")
 
     # Convert to SymbolicStateSpace for reachability analysis
     ss = ir_to_symbolic_statespace(ir)

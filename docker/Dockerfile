@@ -5,14 +5,12 @@
 #
 # A self-contained, offline-capable JupyterLab environment with the full
 # cp_reach stack pre-installed. Run the container, open the printed URL, and
-# every example notebook in examples/ works with no network access.
+# use the CI-gated notebooks in examples/ with no network access.
 #
-# Base choice is forced by rumoca's only Linux wheel
-# (rumoca-*-cp312-cp312-manylinux_2_39_x86_64.whl):
-#   * Python 3.12          -> Ubuntu 24.04 ships 3.12 as the system python
-#   * glibc >= 2.39        -> Ubuntu 24.04 (noble) is glibc 2.39
-#   * x86_64 only          -> this image is amd64-only (no rumoca arm64 wheel)
-# Debian bookworm-based python images (glibc 2.36) cannot install that wheel.
+# RuMoCA 0.9.20 requires Python >= 3.10, and its Linux wheels target
+# manylinux_2_39. Ubuntu 24.04 supplies Python 3.12 and glibc 2.39. RuMoCA also
+# publishes an aarch64 wheel, but this image is currently built and tested only
+# for linux/amd64.
 # ---------------------------------------------------------------------------
 FROM ubuntu:24.04
 
@@ -59,14 +57,14 @@ WORKDIR /home/${NB_USER}/work
 COPY --chown=${NB_USER}:${NB_USER} . /home/${NB_USER}/work
 
 # Pre-bake every dependency so the running container needs no network:
-#   cp_reach[all] + rumoca        -> the library and its full feature set
+#   cp_reach[all]                 -> the library and its full feature set,
+#                                    including the pinned RuMoCA version
 #   jupyterlab + ipykernel        -> the server/editor itself
 #   jupyterlab-lsp + pylsp        -> offline code intelligence (completion,
 #                                    hover, diagnostics) for .py and notebooks
 #   ipympl                        -> interactive matplotlib widgets in the lab
 RUN python -m pip install --upgrade pip \
     && python -m pip install -e ".[all]" \
-        rumoca \
         jupyterlab \
         ipykernel \
         ipympl \
