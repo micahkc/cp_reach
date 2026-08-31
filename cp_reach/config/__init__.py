@@ -13,8 +13,7 @@ Example usage:
     # Load reachability query
     query = ReachQuery.from_yaml("reach_query.yaml")
 
-    # Use with analysis pipeline
-    result = analyze(ir, uncertainty=unc, query=query)
+    # Pass these YAML paths to cp_reach.reachability.analyze().
 """
 
 from cp_reach.config.uncertainty import (

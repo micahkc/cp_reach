@@ -14,10 +14,12 @@ dependencies = [
     "matplotlib>=3.6.3",
     "numpy>=1.24.0",
     "pandas>=2.0.0",
+    "PyYAML>=6.0",
     # SCS 3.3.0 was yanked because its x86_64 wheel crashes on first solve.
     "scs>=3.2.4,!=3.3.0",
     "scipy>=1.10.0",
     "sympy>=1.13.0",
+    "rumoca>=0.10.0,<0.11",
 ]
 
 [project.optional-dependencies]
@@ -32,9 +34,6 @@ dev = [
 satellite = [
     "cyecca>=0.1.0",
 ]
-modelica = [
-    "rumoca==0.9.20",
-]
 docs = [
     "sphinx>=6.0.0",
     "sphinx-rtd-theme>=1.2.0",
@@ -42,7 +41,7 @@ docs = [
     "myst-parser>=1.0.0",
 ]
 all = [
-    "cp_reach[dev,satellite,modelica,docs]",
+    "cp_reach[dev,satellite,docs]",
 ]
 
 [project.urls]
@@ -56,6 +55,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
+
+[tool.setuptools.package-data]
+"cp_reach.targets" = ["sympy-ode/*.toml", "sympy-ode/*.jinja"]
 
 [tool.black]
 line-length = 100

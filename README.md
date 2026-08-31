@@ -10,12 +10,12 @@ The central question is:
 > If a cyber effect can induce this physical disturbance, which vehicle states
 > could become reachable, and could that envelope cross an unsafe boundary?
 
-CP_REACH compiles a Modelica plant/controller model with RuMoCA, converts its
-DAE representation to symbolic state-space dynamics, computes reachable-set
-bounds, and plots those bounds alongside simulated trajectories. The result is
-an analysis artifact that helps an engineer prioritize hypotheses for
-evaluation with more detailed model variants; it is not, by itself, proof that
-a cyber exploit exists.
+CP_REACH compiles a Modelica plant/controller model with RuMoCA, renders its
+checked Solve representation directly to symbolic state-space dynamics,
+computes reachable-set bounds, and plots those bounds alongside simulated
+trajectories. The result is an analysis artifact that helps an engineer
+prioritize hypotheses for evaluation with more detailed model variants; it is
+not, by itself, proof that a cyber exploit exists.
 
 ## Analysis workflow
 
@@ -41,7 +41,7 @@ be presented as a formal guarantee.
 
 ## Capabilities
 
-- Modelica model compilation with RuMoCA 0.9.20
+- Direct checked Solve-to-SymPy compilation with RuMoCA 0.10.x
 - LMI-based ellipsoidal reachable-set over-approximations
 - Polytopic uncertainty for time-varying and nonlinear systems
 - Monte Carlo disturbance simulation
@@ -52,13 +52,12 @@ be presented as a formal guarantee.
 
 ## Installation
 
-RuMoCA 0.9.20 requires Python 3.10 or newer. Install CP_REACH with Modelica
-support from a checkout:
+CP Reach requires Python 3.10 or newer and supports RuMoCA 0.10.x:
 
 ```bash
 git clone https://github.com/micahkc/cp_reach.git
 cd cp_reach
-python -m pip install -e ".[modelica]"
+python -m pip install -e .
 ```
 
 For the tested notebook environment, including development, documentation, and
@@ -76,36 +75,37 @@ evaluators.
 
 ## Minimal Python example
 
-RuMoCA 0.9.20 uses its `Session` API and emits DAE schema 7. The isolated
-workspace below prevents unrelated Modelica files from being discovered during
-compilation.
+The direct loader asks RuMoCA to compile and causalize the model, then renders
+its checked Solve IR directly to SymPy. The isolated workspace below prevents
+unrelated Modelica files from being discovered during compilation.
 
 ```python
 import tempfile
-from pathlib import Path
 
 import numpy as np
-import rumoca
-
-from cp_reach.ir import DaeIR, ir_to_symbolic_statespace
+from cp_reach.ir import modelica_loads
 from cp_reach.reachability import solve_disturbance_LMI
 
-model_name = "PendulumClosedLoop"
-model_path = Path(
-    "examples/general/models/pendulum_closed_loop.mo"
-).resolve()
+model_source = """
+model DisturbedDecay
+  parameter Real k = 0.5;
+  input Real d = 0.0;
+  Real x(start = 1.0);
+equation
+  der(x) = -k*x + d;
+end DisturbedDecay;
+"""
 
 with tempfile.TemporaryDirectory() as workspace:
-    session = rumoca.Session(roots=[], workspace=workspace)
-    model = session.loads(
-        model_path.read_text(),
-        model=model_name,
-        filename=model_path.name,
+    model = modelica_loads(
+        model_source,
+        model_name="DisturbedDecay",
+        filename="DisturbedDecay.mo",
+        roots=[],
+        workspace=workspace,
     )
-    dae_json = model.to_json("dae")
 
-ir = DaeIR.from_json_str(dae_json, model_name=model_name)
-state_space = ir_to_symbolic_statespace(ir)
+state_space = model.symbolic
 
 # The Modelica input named d represents the hypothesized disturbance.
 disturbance_inputs = ["d"]
@@ -144,7 +144,7 @@ saved numeric outputs as one analysis record.
 
 ## Package structure
 
-- `cp_reach.ir`: RuMoCA DAE schema-7 loading and symbolic conversion
+- `cp_reach.ir`: RuMoCA 0.10 Solve-to-SymPy integration
 - `cp_reach.dynamics`: state-space representations and dynamics classification
 - `cp_reach.reachability`: LMI solvers and simulation workflows
 - `cp_reach.plotting`: flow-tube, trajectory, and error-bound visualization

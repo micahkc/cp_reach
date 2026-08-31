@@ -1,0 +1,42 @@
+version = 1
+name = "cp-reach-sympy-ode"
+description = "SymPy explicit ODE and algebraic expressions from Rumoca Solve IR"
+readiness_level = 1
+execution_mode = "symbolic"
+deployment_class = "symbolic"
+
+[capabilities]
+continuous_states = true
+residual_equations = false
+exact_algebraic_assignments = true
+scalar_fallback = true
+external_functions = false
+external_tables = false
+random = false
+initialization = false
+events = false
+runtime_events = false
+clocks = false
+dynamic_ranges = false
+dynamic_derivative_subscripts = false
+forward_ad = true
+reverse_ad = true
+dynamic_control_flow = false
+host_callbacks = false
+
+[capabilities.tensor]
+matmul = "scalar"
+linsolve = "scalar"
+elementwise = "scalar"
+stencil = "scalar"
+reductions = "scalar"
+layout = "row-major"
+supports_dynamic_shapes = false
+sparse = false
+dtypes = ["f64"]
+
+[[files]]
+artifact_kind = "python-source"
+semantic_context = "solve"
+path = "{{ model_name }}_sympy_ode.py"
+template = "sympy_ode.py.jinja"

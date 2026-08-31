@@ -47,9 +47,8 @@ docker load < cp_reach-jupyter.tar.gz
 
 ## What's inside
 
-- **Base:** Ubuntu 24.04 (glibc 2.39) + Python 3.12, compatible with the RuMoCA
-  0.9.20 `manylinux_2_39` wheels. The published image is currently built and
-  tested for **amd64** only.
+- **Base:** Ubuntu 24.04 + Python 3.12 with RuMoCA 0.10. The published image is
+  currently built and tested for **amd64** only.
 - **Editor:** JupyterLab with `jupyterlab-lsp` + `python-lsp-server` for
   offline code intelligence (completion, hover, diagnostics), and `ipympl`
   for interactive matplotlib widgets.

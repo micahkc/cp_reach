@@ -2,15 +2,16 @@
 
 from .lmi import solve_disturbance_LMI, solve_bounded_disturbance_output_LMI
 from .workflows import (
-    sympy_load,
-    casadi_load,
-    simulate_dist,
     plot_grouped,
     compute_reachable_set,
     plot_flowpipe,
-    ir_load,
     analyze,
-    ModelicaIRModel,
+)
+from cp_reach.ir.rumoca import (
+    RumocaSymbolicModel,
+    modelica_load,
+    modelica_loads,
+    rumoca_model_to_symbolic,
 )
 from .polytopic import (
     polytopic_jacobians,
@@ -36,7 +37,6 @@ from .cascaded import (
     compute_omega_from_R,
     euler_equation_jacobians,
     se23_kinematic_matrices,
-    se23_kinematic_matrices_augmented,  # legacy; prefer 9x9 with separate disturbance channels
     se23_controller_matrices,
 )
 
@@ -53,15 +53,14 @@ __all__ = [
     # Certification
     "certify_lipschitz_grid",
     # Workflows
-    "sympy_load",
-    "casadi_load",
-    "simulate_dist",
     "plot_grouped",
     "compute_reachable_set",
     "plot_flowpipe",
-    "ir_load",
     "analyze",
-    "ModelicaIRModel",
+    "RumocaSymbolicModel",
+    "modelica_load",
+    "modelica_loads",
+    "rumoca_model_to_symbolic",
     # Cascaded / Lie group
     "load_lie_spec",
     "partition_states",
@@ -78,6 +77,5 @@ __all__ = [
     "compute_omega_from_R",
     "euler_equation_jacobians",
     "se23_kinematic_matrices",
-    "se23_kinematic_matrices_augmented",
     "se23_controller_matrices",
 ]

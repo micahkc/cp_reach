@@ -1,179 +1,24 @@
 from __future__ import annotations
 
+import json
 import logging
-from typing import Callable, Iterable, List, Optional, Sequence, Tuple, Union
+import warnings
+from pathlib import Path
+from typing import Callable, Iterable, List, Optional, Union
 
 import numpy as np
 
-from cp_reach.dynamics.state_space import SymbolicStateSpace, extract_symbolic_statespace
-from cp_reach.dynamics.state_space import casadi_linearize as _casadi_linearize
+from cp_reach.config.query import ReachQuery
+from cp_reach.config.uncertainty import UncertaintySpec
+from cp_reach.ir.rumoca import RumocaSymbolicModel, modelica_load
 from cp_reach.planning import Trajectory
 from cp_reach.reachability.lmi import solve_disturbance_LMI
 
 logger = logging.getLogger(__name__)
 
 
-def _as_u_profile(u_ff: Union[np.ndarray, Callable[[float], np.ndarray]], t: np.ndarray, m: int) -> np.ndarray:
-    """
-    Convert a feedforward control description into a per-step array.
-    """
-    if callable(u_ff):
-        u_arr = np.stack([np.asarray(u_ff(float(ti)), dtype=float).reshape(m) for ti in t[:-1]], axis=0)
-    else:
-        u_arr = np.asarray(u_ff, dtype=float)
-        if u_arr.ndim == 1:
-            u_arr = u_arr.reshape(-1, m)
-    if u_arr.shape[0] != len(t) - 1 or u_arr.shape[1] != m:
-        raise ValueError(f"u_ff must have shape {(len(t)-1, m)}, got {u_arr.shape}")
-    return u_arr
-
-
-# --- Modelica convenience wrappers (SymPy / CasADi via cyecca) -----------------
-
-
-class ModelicaSympyModel:
-    """
-    Lightweight wrapper around a SymPy backend with CP_Reach-friendly accessors.
-    """
-
-    def __init__(self, backend, ss: SymbolicStateSpace):
-        self.backend = backend
-        self.symbolic = ss
-        self.states = [s.name for s in backend.model.states]
-        self.inputs = [u.name for u in backend.model.inputs]
-        self.parameters = {p.name: getattr(p, "start", None) for p in backend.model.parameters}
-
-
-class ModelicaCasadiModel:
-    """
-    Lightweight wrapper around a CasADi backend exposing a numeric RHS.
-    """
-
-    def __init__(self, backend, rhs_fun, state_names, input_names, param_defaults):
-        self.backend = backend
-        self.rhs_fun = rhs_fun
-        self.state_names = state_names
-        self.input_names = input_names
-        self.param_defaults = param_defaults or {}
-
-    def f(self, t: float, x: np.ndarray, u: np.ndarray, params: Optional[dict] = None) -> np.ndarray:
-        """
-        Evaluate xdot = f(x, u, p). Time is ignored (included for API symmetry).
-        """
-        params = params or {}
-        p_vec = np.array(
-            [params.get(k, self.param_defaults.get(k, 0.0)) for k in self.param_defaults.keys()], dtype=float
-        )
-        if p_vec.size == 0:
-            p_vec = np.zeros(0)
-
-        # Prefer explicit arity from CasADi function
-        expected = None
-        try:
-            if hasattr(self.rhs_fun, "n_in"):
-                expected = int(self.rhs_fun.n_in())
-        except Exception:
-            expected = None
-
-        # If it's a Python function with named args, map them
-        if expected is None:
-            try:
-                sig = inspect.signature(self.rhs_fun)
-                kwargs = {}
-                for name in sig.parameters:
-                    if name in ("t", "time"):
-                        kwargs[name] = t
-                    elif name in ("x", "state"):
-                        kwargs[name] = x
-                    elif name in ("u", "input"):
-                        kwargs[name] = u
-                    elif name in ("p", "params"):
-                        kwargs[name] = p_vec
-                out = self.rhs_fun(**kwargs)
-                return np.array(out, dtype=float).ravel()
-            except Exception:
-                expected = None
-
-        try:
-            if expected == 4:
-                out = self.rhs_fun(t, x, u, p_vec)
-            elif expected == 3:
-                out = self.rhs_fun(x, u, p_vec)
-            elif expected == 2:
-                out = self.rhs_fun(x, u)
-            else:
-                out = self.rhs_fun(x, u, p_vec)
-        except TypeError:
-            # Fallback to minimal signature seen in notebooks
-            out = self.rhs_fun(x, u, p_vec)
-        return np.array(out, dtype=float).ravel()
-
-    def simulate(
-        self,
-        t_final: float,
-        dt: float,
-        input_func: Callable[[float], Union[np.ndarray, dict]],
-        x0: Optional[dict] = None,
-        params: Optional[dict] = None,
-    ):
-        """
-        If the backend exposes a simulate() method (as in modelica_to_casadi_feedforward),
-        delegate to it. Otherwise, raise.
-        """
-        if not hasattr(self.backend, "simulate"):
-            raise RuntimeError("Casadi backend does not provide simulate()")
-
-        # Optionally set initial states/params on backend defaults
-        if x0:
-            if hasattr(self.backend, "state_defaults"):
-                self.backend.state_defaults.update({k: float(v) for k, v in x0.items()})
-        if params:
-            if hasattr(self.backend, "param_defaults"):
-                self.backend.param_defaults.update({k: float(v) for k, v in params.items()})
-
-        # Wrap input_func to produce dicts keyed by input names if needed
-        def wrapped_input_func(t: float):
-            u_val = input_func(t)
-            if isinstance(u_val, dict):
-                return u_val
-            u_arr = np.asarray(u_val, dtype=float).ravel()
-            if u_arr.size != len(self.input_names):
-                raise ValueError(f"input_func returned length {u_arr.size}, expected {len(self.input_names)}")
-            return {name: float(u_arr[i]) for i, name in enumerate(self.input_names)}
-
-        return self.backend.simulate(t_final=t_final, dt=dt, input_func=wrapped_input_func)
-
-
-def sympy_load(model_path: str, output_names: Optional[list[str]] = None, simplify: bool = True) -> ModelicaSympyModel:
-    """
-    Load a Modelica file with cyecca SymPy backend and wrap as ModelicaSympyModel.
-    """
-    from cyecca.backends.sympy import SympyBackend
-
-    backend = SympyBackend.from_file(model_path)
-    ss = extract_symbolic_statespace(backend, output_names=output_names, simplify=simplify)
-    return ModelicaSympyModel(backend=backend, ss=ss)
-
-
-def casadi_load(model_path: str) -> ModelicaCasadiModel:
-    """
-    Load a Modelica file with cyecca CasADi backend and wrap a numeric RHS.
-    """
-    from cyecca.backends.casadi import CasadiBackend
-
-    backend = CasadiBackend.from_file(model_path)
-    rhs_fun = backend.get_rhs_function()
-    return ModelicaCasadiModel(
-        backend=backend,
-        rhs_fun=rhs_fun,
-        state_names=list(backend.state_names),
-        input_names=list(backend.input_names),
-        param_defaults=getattr(backend, "param_defaults", {}),
-    )
-
-
 def compute_reachable_set(
-    model_sympy: ModelicaSympyModel,
+    model_sympy: RumocaSymbolicModel,
     method: str = "lmi",
     dynamics: str = "error",
     dist_bound: Optional[float] = None,
@@ -238,99 +83,6 @@ def compute_reachable_set(
         except Exception as e:
             logger.debug(f"Could not compute axis-aligned bounds: {e}")
     return sol
-
-
-# --- Simulation + plotting for disturbance experiments ------------------------
-
-
-def simulate_dist(
-    model_casadi: ModelicaCasadiModel,
-    x0: dict,
-    params: Optional[dict] = None,
-    dist_bound: float = 0.0,
-    dist_input: Optional[List[str]] = None,
-    num_sims: int = 50,
-    states: Optional[List[List[str]]] = None,
-    input_fun: Optional[Callable[[float], np.ndarray]] = None,
-    frequency_range: Optional[Tuple[float, float]] = (0.5, 5.0),
-) -> Tuple[Trajectory, List[Trajectory]]:
-    """
-    Simulate nominal + Monte Carlo disturbances on the CasADi model.
-
-    dist_input: list of input names that receive square disturbances in [-dist_bound, dist_bound]
-    input_fun: optional callable u(t) -> ndarray of length m (defaults to zeros)
-    frequency_range: optional (low, high) Hz; if provided, each trial uses a square wave
-                     disturbance at a fixed random frequency in this range (phase randomized).
-    """
-    m = len(model_casadi.input_names)
-    n = len(model_casadi.state_names)
-
-    def u_nom(t):
-        if input_fun is None:
-            return np.zeros(m)
-        return np.asarray(input_fun(t), dtype=float).reshape(m)
-
-    # Map x0 dict to vector
-    x0_vec = np.zeros(n)
-    name_to_idx = {name: i for i, name in enumerate(model_casadi.state_names)}
-    for k, v in x0.items():
-        if k not in name_to_idx:
-            raise ValueError(f"Unknown state '{k}' in x0")
-        x0_vec[name_to_idx[k]] = float(v)
-
-    # Simulate nominal trajectory
-    t_final = 5.0
-    dt = 0.01
-
-    def input_func_nom(t):
-        return u_nom(t)
-
-    t_sim, sol_nom = model_casadi.simulate(t_final=t_final, dt=dt, input_func=input_func_nom, x0=x0, params=params)
-    xs_nom = np.column_stack([sol_nom[name] for name in model_casadi.state_names])
-    us_nom = np.vstack([u_nom(tt) for tt in t_sim[:-1]])
-    nom = Trajectory(t=t_sim, x=xs_nom, u=us_nom, metadata={"source": "nominal"})
-
-    # Disturbance indices
-    dist_idx = []
-    if dist_input:
-        for name in dist_input:
-            if name not in model_casadi.input_names:
-                raise ValueError(f"dist_input '{name}' not found in inputs {model_casadi.input_names}")
-            dist_idx.append(model_casadi.input_names.index(name))
-
-    # Monte Carlo rollouts
-    trials: List[Trajectory] = []
-    rng = np.random.default_rng()
-    for _ in range(num_sims):
-        freq = float(rng.uniform(*frequency_range)) if frequency_range else 0.0
-        period = 1.0 / freq if freq > 0 else np.inf
-        phase = float(rng.uniform(0.0, period)) if freq > 0 else 0.0
-
-        def disturbance_wave(t: float) -> float:
-            t_shifted = t + phase
-            cycle_position = (t_shifted % period) / period if period < np.inf else 0.0
-            return dist_bound if cycle_position < 0.5 else -dist_bound
-
-        def disturbed_input(t: float):
-            base = u_nom(t).copy()
-            if dist_idx:
-                d_val = disturbance_wave(t)
-                for idx in dist_idx:
-                    base[idx] += d_val
-            return base
-
-        t_sim, sol_mc = model_casadi.simulate(
-            t_final=nom.t[-1],
-            dt=float(nom.t[1] - nom.t[0]),
-            input_func=disturbed_input,
-            x0=x0,
-            params=params,
-        )
-        xs_mc = np.column_stack([sol_mc[name] for name in model_casadi.state_names])
-        us_mc = np.vstack([disturbed_input(tt) for tt in t_sim[:-1]])
-        trials.append(Trajectory(t=t_sim, x=xs_mc, u=us_mc, metadata={"source": "monte_carlo"}))
-
-    return nom, trials
 
 
 def plot_grouped(nom: Trajectory, trials: List[Trajectory], groups: List[List[str]], state_names: List[str]):
@@ -454,193 +206,72 @@ def plot_flowpipe(
     return fig, axes
 
 
-# --- IR-based workflow (no cyecca dependency) ----------------------------------
-
-
-class ModelicaIRModel:
-    """
-    Lightweight wrapper around IR-loaded model with CP_Reach-friendly accessors.
-
-    This is the IR-based equivalent of ModelicaSympyModel, providing the same
-    interface but loading from Rumoca DAE JSON instead of cyecca backends.
-    """
-
-    def __init__(self, ir, ss: SymbolicStateSpace):
-        self.ir = ir
-        self.symbolic = ss
-        self.states = ir.get_state_names()
-        self.inputs = ir.get_input_names()
-        self.parameters = ir.get_param_defaults()
-
-
-def ir_load(
-    ir_path: str,
-    output_names: Optional[List[str]] = None,
-    simplify: bool = True,
-) -> ModelicaIRModel:
-    """
-    Load a Rumoca DAE IR JSON file and wrap as ModelicaIRModel.
-
-    This is the IR-based equivalent of sympy_load(), providing the same
-    interface for use with compute_reachable_set() and other workflows.
-
-    Parameters
-    ----------
-    ir_path : str
-        Path to the Rumoca DAE IR JSON file
-    output_names : list[str], optional
-        Algebraic variables to use as outputs (for error dynamics)
-    simplify : bool, default=True
-        Whether to simplify symbolic expressions
-
-    Returns
-    -------
-    ModelicaIRModel
-        Wrapped model suitable for reachability analysis
-
-    Examples
-    --------
-    >>> from cp_reach.reachability import ir_load, compute_reachable_set
-    >>> model = ir_load("closed_loop.json", output_names=["e", "ev"])
-    >>> sol = compute_reachable_set(model, method="lmi", dynamics="error")
-    """
-    from cp_reach.ir.loader import DaeIR
-    from cp_reach.ir.state_space import ir_to_symbolic_statespace
-
-    ir = DaeIR.from_json(ir_path)
-    ss = ir_to_symbolic_statespace(ir, output_names=output_names, simplify=simplify)
-    return ModelicaIRModel(ir=ir, ss=ss)
-
-
 def analyze(
-    ir_path: str,
-    uncertainty_path: Optional[str] = None,
-    query_path: Optional[str] = None,
-    output_dir: Optional[str] = None,
+    modelica_path: Union[str, Path],
+    model_name: Optional[str] = None,
+    *,
+    roots: Optional[Iterable[Union[str, Path]]] = None,
+    workspace: Optional[Union[str, Path]] = None,
+    uncertainty_path: Optional[Union[str, Path]] = None,
+    query_path: Optional[Union[str, Path]] = None,
+    output_dir: Optional[Union[str, Path]] = None,
 ) -> dict:
-    """
-    High-level analysis function using IR + YAML configuration.
+    """Compile a Modelica model with Rumoca 0.10 and run reachability analysis."""
+    uncertainty = (
+        UncertaintySpec.from_yaml(uncertainty_path) if uncertainty_path else UncertaintySpec()
+    )
+    query = ReachQuery.from_yaml(query_path) if query_path else ReachQuery()
 
-    This is the main entry point for the structured workflow:
-    1. Load DAE IR from Rumoca
-    2. Load uncertainty specification from YAML
-    3. Load query specification from YAML
-    4. Run reachability analysis
-    5. Save results
-
-    Parameters
-    ----------
-    ir_path : str
-        Path to Rumoca DAE IR JSON file
-    uncertainty_path : str, optional
-        Path to uncertainty.yaml (uses defaults if not provided)
-    query_path : str, optional
-        Path to reach_query.yaml (uses defaults if not provided)
-    output_dir : str, optional
-        Directory to save results (plots, certificates)
-
-    Returns
-    -------
-    dict
-        Analysis results including bounds, certificate, etc.
-
-    Examples
-    --------
-    >>> from cp_reach.reachability import analyze
-    >>> result = analyze(
-    ...     ir_path="closed_loop.json",
-    ...     uncertainty_path="uncertainty.yaml",
-    ...     query_path="reach_query.yaml",
-    ...     output_dir="results/",
-    ... )
-    """
-    from cp_reach.ir.loader import DaeIR
-    from cp_reach.ir.state_space import ir_to_symbolic_statespace
-    from cp_reach.config.uncertainty import UncertaintySpec
-    from cp_reach.config.query import ReachQuery
-    from pathlib import Path
-    import json
-
-    # Load IR
-    ir = DaeIR.from_json(ir_path)
-
-    # Load uncertainty (or use defaults)
-    if uncertainty_path:
-        uncertainty = UncertaintySpec.from_yaml(uncertainty_path)
-    else:
-        uncertainty = UncertaintySpec()
-
-    # Load query (or use defaults)
-    if query_path:
-        query = ReachQuery.from_yaml(query_path)
-    else:
-        query = ReachQuery()
-
-    # Validate
-    unc_warnings = uncertainty.validate_against_ir(ir)
-    query_warnings = query.validate_against_ir(ir)
-
-    if unc_warnings:
-        import warnings
-        for w in unc_warnings:
-            warnings.warn(w)
-
-    if query_warnings:
-        import warnings
-        for w in query_warnings:
-            warnings.warn(w)
-
-    # Convert to state space
-    ss = ir_to_symbolic_statespace(
-        ir,
-        output_names=query.outputs if query.outputs else None,
-        simplify=True,
+    model = modelica_load(
+        modelica_path,
+        model_name=model_name,
+        roots=roots,
+        workspace=workspace,
+        output_names=query.outputs or None,
     )
 
-    # Get disturbance bound
+    for message in uncertainty.validate_against_model(model) + query.validate_against_model(model):
+        warnings.warn(message)
+
     dist_bound = 1.0
     if query.dist_inputs:
         dist_bound = max(uncertainty.get_dist_bound(name) for name in query.dist_inputs)
 
-    # Compute reachable set
-    # Create a minimal wrapper for compute_reachable_set
-    class _ModelWrapper:
-        def __init__(self, ss, inputs):
-            self.symbolic = ss
-            self.inputs = inputs
-
-    model_wrapper = _ModelWrapper(ss, ir.get_input_names())
-
     result = compute_reachable_set(
-        model_wrapper,
+        model,
         method="lmi",
         dynamics=query.dynamics,
         dist_bound=dist_bound,
         alpha_grid=query.alpha_search.to_grid(),
-        dist_input=query.dist_inputs if query.dist_inputs else None,
+        dist_input=query.dist_inputs or None,
     )
 
-    # Add metadata
-    result["model_name"] = ir.model_name
+    compiled_name = getattr(model.rumoca, "name", None)
+    result["model_name"] = compiled_name or Path(modelica_path).stem
     result["query_type"] = query.type
     result["dynamics"] = query.dynamics
 
-    # Save results if output directory provided
     if output_dir:
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
-
-        # Save certificate as JSON
         if query.output_format.json:
-            cert_data = {
-                "model_name": ir.model_name,
+            certificate = {
+                "model_name": result["model_name"],
                 "status": result.get("status", "unknown"),
                 "alpha": float(result.get("alpha", 0)),
-                "mu": float(result["mu"][0]) if "mu" in result else None,
-                "bounds_upper": result.get("bounds_upper", []).tolist() if "bounds_upper" in result else None,
-                "bounds_lower": result.get("bounds_lower", []).tolist() if "bounds_lower" in result else None,
+                "mu": (float(np.asarray(result["mu"]).reshape(-1)[0]) if "mu" in result else None),
+                "bounds_upper": (
+                    np.asarray(result["bounds_upper"]).tolist()
+                    if "bounds_upper" in result
+                    else None
+                ),
+                "bounds_lower": (
+                    np.asarray(result["bounds_lower"]).tolist()
+                    if "bounds_lower" in result
+                    else None
+                ),
             }
-            with open(output_path / "certificate.json", "w") as f:
-                json.dump(cert_data, f, indent=2)
+            with (output_path / "certificate.json").open("w") as stream:
+                json.dump(certificate, stream, indent=2)
 
     return result

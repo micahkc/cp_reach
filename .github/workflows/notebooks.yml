@@ -1,9 +1,7 @@
 name: Notebooks
 
 # Executes the example notebooks end-to-end (compile -> reachability -> plots)
-# to catch regressions in the documented workflows. RuMoCA 0.9.20 requires
-# Python >= 3.10 and its Linux wheels require glibc >= 2.39; Ubuntu 24.04 with
-# Python 3.12 satisfies both constraints.
+# to catch regressions in the documented RuMoCA 0.10 workflow.
 #
 # The explicit list below defines the supported notebook integration surface.
 # Exploratory notebooks are not part of this workflow.

@@ -15,11 +15,11 @@ model PendulumClosedLoop
   parameter Real Kd = 0.5 "Derivative gain";
 
   // External inputs (reference trajectory)
-  input Real theta_ref "Reference angle [rad]";
-  input Real omega_ref "Reference angular velocity [rad/s]";
-  input Real alpha_ref "Reference angular acceleration [rad/s^2]";
-  input Real u_ff "Feedforward torque [N*m]";
-  input Real d "Disturbance torque [N*m]";
+  input Real theta_ref = 0.0 "Reference angle [rad]";
+  input Real omega_ref = 0.0 "Reference angular velocity [rad/s]";
+  input Real alpha_ref = 0.0 "Reference angular acceleration [rad/s^2]";
+  input Real u_ff = 0.0 "Feedforward torque [N*m]";
+  input Real d = 0.0 "Disturbance torque [N*m]";
 
   // Plant states
   Real theta(start = 0) "Angle [rad]";

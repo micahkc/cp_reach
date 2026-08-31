@@ -30,9 +30,6 @@ examples/**/output*/
 *.png
 *.tex
 
-# Compiled IR outputs
-examples/**/*.json
-
 # Debug/scratch scripts
 debug_*.py
 
@@ -44,3 +41,6 @@ CLAUDE.md
 
 # Development examples
 examples/development/
+
+# Local development plans and scratch work
+dev/
