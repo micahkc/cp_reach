@@ -1,112 +1,54 @@
-"""
-Rumoca DAE IR JSON Loader.
-
-This module loads Rumoca's DAE (Differential Algebraic Equations) IR format
-directly from JSON files, bypassing the need for cyecca or Modelica parsing.
-
-The DAE format follows the Modelica specification Appendix B:
-    - x: continuous states (variables that appear differentiated)
-    - y: algebraic variables (continuous but not differentiated)
-    - u: inputs (declared with input causality)
-    - p: parameters (declared with parameter variability)
-    - fx: continuous-time equations
-"""
+"""Load RuMoCA 0.9.20 DAE schema-7 JSON for CP_REACH analysis."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union
-from pathlib import Path
 import json
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
+
+SUPPORTED_SCHEMA_VERSION = 7
 
 
 @dataclass
 class Component:
-    """
-    Represents a variable/component from the Rumoca DAE IR.
-
-    Attributes
-    ----------
-    name : str
-        Variable name (may include component path, e.g., "plant.x")
-    type_name : str
-        Modelica type name (e.g., "Real", "Integer")
-    variability : str
-        Variable variability: "", "parameter", "constant", "discrete"
-    causality : str
-        Variable causality: "", "input", "output"
-    shape : list[int]
-        Array dimensions (empty for scalars)
-    start : float or None
-        Initial/default value if specified
-    role : str or None
-        Component role inferred from prefix (e.g., "plant", "controller")
-    """
+    """A scalar or array component from a RuMoCA DAE category."""
 
     name: str
     type_name: str = "Real"
     variability: str = ""
-    causality: str = ""
-    shape: List[int] = field(default_factory=list)
+    causality: str = "local"
+    shape: List[Any] = field(default_factory=list)
     start: Optional[float] = None
     role: Optional[str] = None
 
     def is_parameter(self) -> bool:
-        """Check if this component is a parameter."""
+        """Return whether this component came from the DAE parameter category."""
         return self.variability == "parameter"
 
     def is_constant(self) -> bool:
-        """Check if this component is a constant."""
+        """Return whether this component came from the DAE constant category."""
         return self.variability == "constant"
 
     def is_input(self) -> bool:
-        """Check if this component is an input."""
+        """Return whether RuMoCA classified this component as an input."""
         return self.causality == "input"
 
     def is_output(self) -> bool:
-        """Check if this component is an output."""
+        """Return whether RuMoCA classified this component as an output."""
         return self.causality == "output"
 
     def is_scalar(self) -> bool:
-        """Check if this component is a scalar (not array)."""
-        return len(self.shape) == 0
+        """Return whether this component has no array dimensions."""
+        return not self.shape
 
 
 @dataclass
 class DaeIR:
-    """
-    Represents a complete DAE (Differential Algebraic Equations) model.
-
-    This is the primary data structure for loaded Rumoca IR. It contains
-    all variables categorized by their role in the DAE, plus the equations
-    as parsed AST structures.
-
-    Attributes
-    ----------
-    model_name : str
-        Name of the compiled model
-    rumoca_version : str
-        Version of Rumoca that generated this IR
-    states : dict[str, Component]
-        State variables (x) - those that appear differentiated
-    algebraics : dict[str, Component]
-        Algebraic variables (y) - continuous but not differentiated
-    inputs : dict[str, Component]
-        Input variables (u) - declared with input causality
-    parameters : dict[str, Component]
-        Parameters (p) - declared with parameter variability
-    constants : dict[str, Component]
-        Constants (cp) - declared with constant variability
-    equations : list
-        Continuous-time equations (fx) as AST structures
-    initial_equations : list
-        Initial equations (fx_init) as AST structures
-    algebraic_equations : list
-        Algebraic equations (fz) as AST structures
-    """
+    """The CP_REACH view of a RuMoCA 0.9.20 DAE schema-7 model."""
 
     model_name: str
-    rumoca_version: str = ""
+    schema_version: int = SUPPORTED_SCHEMA_VERSION
     states: Dict[str, Component] = field(default_factory=dict)
     algebraics: Dict[str, Component] = field(default_factory=dict)
     inputs: Dict[str, Component] = field(default_factory=dict)
@@ -117,269 +59,144 @@ class DaeIR:
     algebraic_equations: List[Any] = field(default_factory=list)
 
     @classmethod
-    def from_json(cls, path: Union[str, Path]) -> "DaeIR":
-        """
-        Load a DaeIR from a Rumoca DAE JSON file.
-
-        Parameters
-        ----------
-        path : str or Path
-            Path to the JSON file
-
-        Returns
-        -------
-        DaeIR
-            Parsed DAE representation
-
-        Raises
-        ------
-        FileNotFoundError
-            If the JSON file doesn't exist
-        json.JSONDecodeError
-            If the JSON is malformed
-        KeyError
-            If required fields are missing
-        """
-        path = Path(path)
-        with open(path) as f:
-            data = json.load(f)
-
-        return cls.from_dict(data)
+    def from_json(
+        cls,
+        path: Union[str, Path],
+        *,
+        model_name: Optional[str] = None,
+    ) -> "DaeIR":
+        """Load DAE JSON from a file, using its stem as the model name by default."""
+        source_path = Path(path)
+        with source_path.open() as stream:
+            data = json.load(stream)
+        return cls.from_dict(data, model_name=model_name or source_path.stem)
 
     @classmethod
-    def from_json_str(cls, json_str: str) -> "DaeIR":
-        """
-        Load a DaeIR from a JSON string.
-
-        Parameters
-        ----------
-        json_str : str
-            JSON string containing the DAE IR
-
-        Returns
-        -------
-        DaeIR
-            Parsed DAE representation
-        """
-        data = json.loads(json_str)
-        return cls.from_dict(data)
+    def from_json_str(
+        cls,
+        json_str: str,
+        *,
+        model_name: Optional[str] = None,
+    ) -> "DaeIR":
+        """Load DAE JSON from a string."""
+        return cls.from_dict(json.loads(json_str), model_name=model_name)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DaeIR":
-        """
-        Create a DaeIR from a parsed JSON dictionary.
-
-        Parameters
-        ----------
-        data : dict
-            Parsed JSON data
-
-        Returns
-        -------
-        DaeIR
-            Parsed DAE representation
-        """
-
-        def parse_component(name: str, comp: dict) -> Component:
-            """Parse a single component from the JSON structure."""
-            # Extract start value from AST
-            start = None
-            start_data = comp.get("start")
-            if start_data and start_data != "Empty":
-                start = _parse_start_value(start_data)
-
-            # Extract variability (parameter, constant, discrete, or empty)
-            variability = ""
-            var_data = comp.get("variability")
-            if isinstance(var_data, dict):
-                # Format: {"Parameter": {...}} or {"Constant": {...}}
-                variability = list(var_data.keys())[0].lower()
-            elif var_data and var_data != "Empty":
-                variability = str(var_data).lower()
-
-            # Extract causality (input, output, or empty)
-            causality = ""
-            caus_data = comp.get("causality")
-            if isinstance(caus_data, dict):
-                # Format: {"Input": {...}} or {"Output": {...}}
-                causality = list(caus_data.keys())[0].lower()
-            elif caus_data and caus_data != "Empty":
-                causality = str(caus_data).lower()
-
-            # Extract type name
-            type_name = "Real"
-            type_data = comp.get("type_name", {})
-            if isinstance(type_data, dict):
-                name_parts = type_data.get("name", [])
-                if name_parts:
-                    # Take the last part of the qualified name
-                    if isinstance(name_parts[-1], dict):
-                        type_name = name_parts[-1].get("text", "Real")
-                    else:
-                        type_name = str(name_parts[-1])
-
-            # Extract shape (array dimensions)
-            shape = comp.get("shape", [])
-
-            return Component(
-                name=name,
-                type_name=type_name,
-                variability=variability,
-                causality=causality,
-                shape=shape,
-                start=start,
+    def from_dict(
+        cls,
+        data: Dict[str, Any],
+        *,
+        model_name: Optional[str] = None,
+    ) -> "DaeIR":
+        """Create an IR from RuMoCA 0.9.20 DAE schema-7 data."""
+        schema_version = data.get("schema_version")
+        if schema_version != SUPPORTED_SCHEMA_VERSION:
+            raise ValueError(
+                f"CP_REACH requires RuMoCA DAE schema {SUPPORTED_SCHEMA_VERSION}; "
+                f"received {schema_version!r}"
             )
 
-        # Parse all component categories
-        states = {k: parse_component(k, v) for k, v in data.get("x", {}).items()}
-        algebraics = {k: parse_component(k, v) for k, v in data.get("y", {}).items()}
-        inputs = {k: parse_component(k, v) for k, v in data.get("u", {}).items()}
-        parameters = {k: parse_component(k, v) for k, v in data.get("p", {}).items()}
-        # Constants: "cp" (old) or "constants" (rumoca >= 0.8)
-        constants_data = data.get("cp", data.get("constants", {}))
-        constants = {k: parse_component(k, v) for k, v in constants_data.items()}
+        def parse_component(
+            name: str,
+            component: Dict[str, Any],
+            *,
+            variability: str = "",
+        ) -> Component:
+            return Component(
+                name=name,
+                variability=variability,
+                causality=component.get("causality", "local"),
+                shape=component.get("dims", []),
+                start=_parse_start_value(component.get("start")),
+            )
 
-        # Equations: "fx" (old) or "f_x" (rumoca >= 0.8)
-        equations = data.get("fx", data.get("f_x", []))
-        initial_equations = data.get("fx_init", data.get("initial_equations", []))
-        algebraic_equations = data.get("fz", data.get("f_z", []))
+        states = {name: parse_component(name, value) for name, value in data["x"].items()}
+        algebraics = {name: parse_component(name, value) for name, value in data["y"].items()}
+        inputs = {name: parse_component(name, value) for name, value in data["u"].items()}
+        parameters = {
+            name: parse_component(name, value, variability="parameter")
+            for name, value in data["p"].items()
+        }
+        constants = {
+            name: parse_component(name, value, variability="constant")
+            for name, value in data["constants"].items()
+        }
 
         return cls(
-            model_name=data.get("model_name", "Unknown"),
-            rumoca_version=data.get("rumoca_version", ""),
+            model_name=model_name or "UnnamedModel",
+            schema_version=schema_version,
             states=states,
             algebraics=algebraics,
             inputs=inputs,
             parameters=parameters,
             constants=constants,
-            equations=equations,
-            initial_equations=initial_equations,
-            algebraic_equations=algebraic_equations,
+            equations=data["f_x"],
+            initial_equations=data["initial_equations"],
+            algebraic_equations=data["f_z"],
         )
 
     def infer_roles(self) -> Dict[str, str]:
-        """
-        Infer component roles from variable name prefixes.
-
-        Variables with dotted names like "plant.x" are assumed to come from
-        a component named "plant", and the role is set to that prefix.
-
-        Returns
-        -------
-        dict[str, str]
-            Mapping from variable name to inferred role
-        """
+        """Infer plant/controller roles from dotted component-name prefixes."""
         roles = {}
-        all_vars = (
-            list(self.states.keys())
-            + list(self.inputs.keys())
-            + list(self.algebraics.keys())
-        )
-        for name in all_vars:
+        names = [*self.states, *self.inputs, *self.algebraics]
+        for name in names:
             if "." in name:
-                prefix = name.split(".")[0]
-                roles[name] = prefix
+                roles[name] = name.split(".", 1)[0]
         return roles
 
     def get_state_names(self) -> List[str]:
-        """Get ordered list of state variable names."""
-        return list(self.states.keys())
+        """Return state names in RuMoCA order."""
+        return list(self.states)
 
     def get_input_names(self) -> List[str]:
-        """Get ordered list of input variable names."""
-        return list(self.inputs.keys())
+        """Return input names in RuMoCA order."""
+        return list(self.inputs)
 
     def get_parameter_names(self) -> List[str]:
-        """Get ordered list of parameter names."""
-        return list(self.parameters.keys())
+        """Return parameter names in RuMoCA order."""
+        return list(self.parameters)
 
     def get_algebraic_names(self) -> List[str]:
-        """Get ordered list of algebraic variable names."""
-        return list(self.algebraics.keys())
+        """Return algebraic names in RuMoCA order."""
+        return list(self.algebraics)
 
     def get_param_defaults(self) -> Dict[str, float]:
-        """
-        Get default parameter values.
-
-        Returns
-        -------
-        dict[str, float]
-            Mapping from parameter name to default value
-        """
-        defaults = {}
-        for name, comp in self.parameters.items():
-            if comp.start is not None:
-                defaults[name] = comp.start
-        for name, comp in self.constants.items():
-            if comp.start is not None:
-                defaults[name] = comp.start
-        return defaults
+        """Return numeric parameter and constant defaults."""
+        components = {**self.parameters, **self.constants}
+        return {
+            name: component.start
+            for name, component in components.items()
+            if component.start is not None
+        }
 
     def n_states(self) -> int:
-        """Number of state variables."""
+        """Return the number of continuous states."""
         return len(self.states)
 
     def n_inputs(self) -> int:
-        """Number of input variables."""
+        """Return the number of inputs."""
         return len(self.inputs)
 
     def n_parameters(self) -> int:
-        """Number of parameters."""
+        """Return the number of parameters."""
         return len(self.parameters)
 
     def n_algebraics(self) -> int:
-        """Number of algebraic variables."""
+        """Return the number of algebraic variables."""
         return len(self.algebraics)
 
 
 def _parse_start_value(start_ast: Any) -> Optional[float]:
-    """
-    Extract numeric start value from AST.
-
-    Parameters
-    ----------
-    start_ast : dict
-        AST node representing the start value expression
-
-    Returns
-    -------
-    float or None
-        Numeric value if parseable, None otherwise
-    """
-    if not isinstance(start_ast, dict):
+    """Extract a numeric start value from a RuMoCA schema-7 expression."""
+    if start_ast is None:
         return None
-
-    # Handle Literal nodes (rumoca >= 0.8)
     if "Literal" in start_ast:
-        literal = start_ast["Literal"]
-        if isinstance(literal, dict):
-            for key in ("Real", "Integer"):
-                if key in literal:
-                    try:
-                        return float(literal[key])
-                    except (ValueError, TypeError):
-                        pass
+        value = start_ast["Literal"]["value"]
+        for tag in ("Real", "Integer"):
+            if tag in value:
+                return float(value[tag])
         return None
-
-    # Handle Terminal nodes (literals, rumoca < 0.8)
-    if "Terminal" in start_ast:
-        terminal = start_ast["Terminal"]
-        token = terminal.get("token", {})
-        text = token.get("text", "")
-        try:
-            return float(text)
-        except (ValueError, TypeError):
-            return None
-
-    # Handle unary minus
-    if "Unary" in start_ast:
-        unary = start_ast["Unary"]
-        op = unary.get("op", {})
-        if "Neg" in op or "Minus" in op:
-            operand = unary.get("operand", {})
-            val = _parse_start_value(operand)
-            if val is not None:
-                return -val
-        return None
-
+    if "Unary" in start_ast and start_ast["Unary"]["op"] == "Minus":
+        value = _parse_start_value(start_ast["Unary"]["rhs"])
+        return -value if value is not None else None
     return None

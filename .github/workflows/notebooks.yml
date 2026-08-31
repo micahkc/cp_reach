@@ -1,21 +1,12 @@
 name: Notebooks
 
 # Executes the example notebooks end-to-end (compile -> reachability -> plots)
-# to catch regressions in the documented workflows. Needs Python 3.12 on a
-# glibc >= 2.39 runner because rumoca's only Linux wheel is
-# cp312/manylinux_2_39/x86_64 (ubuntu-24.04 provides both).
+# to catch regressions in the documented workflows. RuMoCA 0.9.20 requires
+# Python >= 3.10 and its Linux wheels require glibc >= 2.39; Ubuntu 24.04 with
+# Python 3.12 satisfies both constraints.
 #
-# Only the notebooks that currently pass are gated. The following are
-# EXCLUDED until fixed (verified against rumoca 0.8.12) -- add them back to the
-# pytest invocation below once they run clean:
-#   examples/general/quadrotor_casadi.ipynb
-#       uses rumoca.generate_code(), removed from the rumoca API
-#   examples/general/structured_workflow.ipynb
-#       rumoca.compile() -> "EP001: unexpected `models`" (API/parse change)
-#   examples/general/structured_quadrotor.ipynb
-#       rumoca-API failure
-#   examples/general/generalized_lie_groups.ipynb
-#       exceeds the per-cell timeout (hangs / very slow)
+# The explicit list below defines the supported notebook integration surface.
+# Exploratory notebooks are not part of this workflow.
 
 on:
   push:
@@ -44,7 +35,7 @@ jobs:
       - name: Install cp_reach + notebook tooling
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[all]" rumoca nbmake ipykernel
+          pip install -e ".[all]" nbmake ipykernel
 
       - name: Execute notebooks
         run: |

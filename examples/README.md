@@ -1,106 +1,61 @@
-# CP_Reach Examples
+# CP_REACH examples
 
-This directory contains examples demonstrating the capabilities of cp_reach for reachability analysis of cyber-physical systems.
+These notebooks demonstrate how to turn a physical disturbance assumption into
+a reachable-set analysis and a cyber-physical vulnerability hypothesis.
 
-## Directory Structure
+## Recommended starting point
 
-```
-examples/
-├── general/            # Structured workflow examples (linear & nonlinear)
-├── satellite/          # Satellite rendezvous reachability
-├── quadrotor/          # Quadrotor invariant set computation
-└── rover/              # Rover rollover analysis
-```
+Start with
+[`general/structured_nonlinear.ipynb`](general/structured_nonlinear.ipynb). It
+shows the full Modelica-to-flow-tube path for a controlled nonlinear pendulum:
 
-## Getting Started
+1. compile the Modelica source through a RuMoCA 0.9.20 `Session`;
+2. load DAE schema 7 into CP_REACH;
+3. identify the bounded disturbance input;
+4. construct time-varying polytopic dynamics;
+5. compute and continuously check LMI bounds;
+6. compare the certified envelope with sampled disturbance trajectories; and
+7. plot the state flow-tube and error ellipses.
 
-### General Examples (Recommended Starting Point)
+Read the configuration cell before running it. In a new analysis, replace the
+model, model name, disturbance limits, operating trajectory, and state-region
+bounds with values justified for the target vehicle and hypothesized effect.
 
-The `general/` folder demonstrates the end-to-end structured workflow for both linear and nonlinear systems:
+## CI-gated notebooks
 
-**Linear System: [general/structured_workflow.ipynb](general/structured_workflow.ipynb)**
-- Mass-spring-damper with PD control
-- Standard LMI-based reachability analysis
-- Output: flowpipe bounds, invariant ellipsoid
+The following notebooks are executed end to end in CI:
 
-**Quadrotor (Lie Group): [general/structured_quadrotor.ipynb](general/structured_quadrotor.ipynb)**
-- Quadrotor on SE_2(3) with cascaded LMI
-- Two-layer architecture: rotational (polytopic) + kinematic (exact log-linear)
-- Differential flatness reference trajectory
+- [`general/structured_nonlinear.ipynb`](general/structured_nonlinear.ipynb)
+- [`quadrotor/quadrotor_flowpipe.ipynb`](quadrotor/quadrotor_flowpipe.ipynb)
+- [`rover/rover_plots.ipynb`](rover/rover_plots.ipynb)
+- [`satellite/satellite_error_bounds.ipynb`](satellite/satellite_error_bounds.ipynb)
 
-**Nonlinear System: [general/structured_nonlinear.ipynb](general/structured_nonlinear.ipynb)**
-- Pendulum with PID control and gravity nonlinearity
-- Time-varying polytopic LMI bounds
-- Continuous-time certification (Algorithm 2)
+Other notebooks are exploratory and are not part of the current verified
+workflow.
 
-**CLI Script: [general/run_analysis.py](general/run_analysis.py)**
-- End-to-end analysis via command line
-- Compiles Modelica → runs LMI → saves results
+## Run interactively
 
-**Configuration:**
-- `general/uncertainty.yaml` - Disturbance bounds
-- `general/reach_query.yaml` - Analysis parameters
-
-See [general/README.md](general/README.md) for detailed documentation.
-
-### Application Examples
-
-**[satellite/satellite_error_bounds.ipynb](satellite/satellite_error_bounds.ipynb)**
-- Satellite rendezvous on SE(2,3) Lie group
-- Log-linear error dynamics
-- Invariant set computation for orbital maneuvers
-
-**[quadrotor/quadrotor_flowpipe.ipynb](quadrotor/quadrotor_flowpipe.ipynb)**
-- Quadrotor SE(2,3) kinematics
-- Nested invariant sets (angular dynamics + full state)
-- Ellipsoidal reachable set bounds
-
-**[rover/rover_plots.ipynb](rover/rover_plots.ipynb)**
-- Ground vehicle rollover analysis
-- Terrain angle vs velocity bounds
-- Safety envelope visualization
-
-## Running Examples
-
-### Prerequisites
-
-Install cp_reach:
-```bash
-pip install -e .
-```
-
-For satellite/quadrotor examples with Lie group dynamics:
-```bash
-pip install cyecca
-```
-
-### Running Notebooks
+From the repository root:
 
 ```bash
-jupyter notebook examples/general/structured_workflow.ipynb
+python -m pip install -e ".[all]"
+python -m pip install jupyterlab
+jupyter lab
 ```
 
-### Running CLI
+Open a recommended notebook and run all cells. This project is used as a Python
+package from notebooks; a command-line interface is not required for the STR
+workflow.
 
-```bash
-python examples/general/run_analysis.py
-```
+## Interpreting results
 
-Or using the module:
-```bash
-python -m cp_reach analyze \
-    --ir examples/general/output/closedloop.json \
-    --uncertainty examples/general/uncertainty.yaml \
-    --query examples/general/reach_query.yaml
-```
-
-## Workflow Overview
-
-The recommended cp_reach workflow:
-
-1. **Author models** - Write plant/controller as Modelica `.mo` files
-2. **Compile** - `rumoca --json -m ModelName model.mo > model.json`
-3. **Specify uncertainty** - Define disturbance bounds in `uncertainty.yaml`
-4. **Specify query** - Define analysis parameters in `reach_query.yaml`
-5. **Analyze** - Run via notebook or CLI
-6. **Validate** - Monte Carlo simulation to verify bounds
+- A certified flow-tube crossing a safety limit supports a hypothesis that the
+  modeled disturbance can produce an unsafe physical state under the stated
+  assumptions.
+- A certified flow-tube remaining inside a limit is meaningful only over the
+  model, bounds, and operating region covered by the certificate.
+- A Monte Carlo trajectory crossing a limit is a useful counterexample or test
+  case.
+- Monte Carlo trajectories remaining inside a limit are not a proof of safety.
+- Reachability does not establish a cyber access path or exploit. Validate that
+  part of the hypothesis in CP_GLIMPSE or another high-fidelity environment.

@@ -45,12 +45,14 @@ def create_parser() -> argparse.ArgumentParser:
         help="Path to query YAML file",
     )
     analyze_parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         default="results/",
         help="Output directory for results (default: results/)",
     )
     analyze_parser.add_argument(
-        "--verbose", "-v",
+        "--verbose",
+        "-v",
         action="store_true",
         help="Verbose output",
     )
@@ -140,6 +142,7 @@ def cmd_analyze(args) -> int:
         print(f"Error during analysis: {e}", file=sys.stderr)
         if args.verbose:
             import traceback
+
             traceback.print_exc()
         return 1
 
@@ -217,7 +220,7 @@ def cmd_info(args) -> int:
         ir = DaeIR.from_json(args.ir)
 
         print(f"Model: {ir.model_name}")
-        print(f"Rumoca version: {ir.rumoca_version}")
+        print(f"RuMoCA DAE schema: {ir.schema_version}")
         print()
 
         print("States:")

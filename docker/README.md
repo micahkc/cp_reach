@@ -1,9 +1,9 @@
 # cp_reach JupyterLab image
 
 A self-contained, **offline-capable** JupyterLab environment with the full
-`cp_reach` stack (including `rumoca`, `cyecca`, and the LMI/optimization
-toolchain) pre-installed. Run the container, open the printed URL, and every
-notebook under `examples/` works with no network access.
+`cp_reach` stack (including RuMoCA, Cyecca, and the LMI/optimization
+toolchain) pre-installed. Run the container, open the printed URL, and use the
+CI-gated notebooks with no network access.
 
 ## Pulling the released image
 
@@ -14,9 +14,9 @@ release by `.github/workflows/jupyterlab-image.yml`:
 docker pull ghcr.io/<owner>/cp_reach-jupyter:latest      # or a version tag, e.g. :0.2.0
 ```
 
-> Replace `<owner>` with the GitHub org/user that owns the repo. After the
-> first publish, make the GHCR package public (Packages → cp_reach-jupyter →
-> Package settings → Change visibility) if you want unauthenticated pulls.
+The canonical GHCR package is currently private. Authenticate with an account
+that has package access before pulling it. Access can be granted to STR
+evaluators.
 
 ## Running
 
@@ -47,10 +47,9 @@ docker load < cp_reach-jupyter.tar.gz
 
 ## What's inside
 
-- **Base:** Ubuntu 24.04 (glibc 2.39) + Python 3.12 — required by the only
-  Linux `rumoca` wheel (`cp312` / `manylinux_2_39` / `x86_64`). The image is
-  **amd64-only**; there is no `rumoca` (or `casadi`/`cvxpy`) musl wheel, so
-  Alpine is not supported.
+- **Base:** Ubuntu 24.04 (glibc 2.39) + Python 3.12, compatible with the RuMoCA
+  0.9.20 `manylinux_2_39` wheels. The published image is currently built and
+  tested for **amd64** only.
 - **Editor:** JupyterLab with `jupyterlab-lsp` + `python-lsp-server` for
   offline code intelligence (completion, hover, diagnostics), and `ipympl`
   for interactive matplotlib widgets.

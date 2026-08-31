@@ -1,152 +1,171 @@
-# cp_reach
+# CP_REACH
 
-**cp_reach** is a Python library for computing reachable sets and performing reachability analysis on cyber-physical systems (CPS). It uses rigorous mathematical methods including Linear Matrix Inequalities (LMIs), Lyapunov theory, and Lie group structures to provide formal guarantees for nonlinear dynamics.
+CP_REACH is an interactive Python and Jupyter package for developing
+cyber-physical vulnerability hypotheses. It shows how bounded disturbances can
+change the reachable set, or flow-tube, of a vehicle system modeled in
+Modelica.
 
-## Features
+The central question is:
 
-- **Generalizable Model Support**: Reachable sets for systems written in Modelica utilizing [RuMoCA](https://rumoca.dev)
-- **Domain-Specific Analysis**: Reachable sets for Rover, Quadrotor, and Satellite utilizing log-linearized Lie groups
-- **LMI-Based Over-Approximation**: Compute ellipsoidal reachable set over-approximations using Lyapunov theory
-- **Polytopic Uncertainty**: Handle time-varying and uncertain systems via polytopic LMI formulations
-- **Monte Carlo Simulation**: Simulate trajectories with bounded disturbances for validation
-- **Trajectory Planning**: Polynomial trajectory generation for reference tracking
-- **Multiple Backends**: Symbolic (SymPy) and numeric (CasADi) computation engines
-- **Visualization**: Built-in plotting for error bounds, trajectories, and flowpipes
+> If a cyber effect can induce this physical disturbance, which vehicle states
+> could become reachable, and could that envelope cross an unsafe boundary?
+
+CP_REACH compiles a Modelica plant/controller model with RuMoCA, converts its
+DAE representation to symbolic state-space dynamics, computes reachable-set
+bounds, and plots those bounds alongside simulated trajectories. The result is
+an analysis artifact that helps an engineer prioritize hypotheses for
+high-fidelity testing; it is not, by itself, proof that a cyber exploit exists.
+
+## Analysis workflow
+
+1. Start with a Modelica model of the vehicle plant and controller.
+2. Add explicit input channels for hypothesized cyber-physical effects, such as
+   actuator bias, command injection, sensor-induced control error, or an
+   equivalent force/torque.
+3. Bound each disturbance using units from the model and select an operating
+   trajectory or region.
+4. Compute a conservative reachable-set over-approximation with the LMI
+   workflow, or use Monte Carlo simulation for a fast empirical approximation
+   when theoretical analysis is cumbersome.
+5. Inspect the flow-tube against safety-relevant state limits. A potential
+   intersection becomes a vulnerability hypothesis to investigate.
+6. Exercise the hypothesis in CP_GLIMPSE or another high-fidelity environment,
+   then use the results to refine the model and disturbance assumptions.
+
+Formal over-approximations and sampled simulation answer different questions.
+An LMI certificate can bound all disturbances covered by its assumptions.
+Monte Carlo results only show the trajectories that were sampled and must not
+be presented as a formal guarantee.
+
+## Capabilities
+
+- Modelica model compilation with RuMoCA 0.9.20
+- LMI-based ellipsoidal reachable-set over-approximations
+- Polytopic uncertainty for time-varying and nonlinear systems
+- Monte Carlo disturbance simulation
+- Trajectory generation and reference tracking
+- SymPy and CasADi computation backends
+- Flow-tube, trajectory, and error-bound visualization
+- Rover, quadrotor, and satellite examples
 
 ## Installation
 
-### From Source
+RuMoCA 0.9.20 requires Python 3.10 or newer. Install CP_REACH with Modelica
+support from a checkout:
 
 ```bash
 git clone https://github.com/micahkc/cp_reach.git
 cd cp_reach
-pip install -e .
+python -m pip install -e ".[modelica]"
 ```
 
-### Dependencies
+For the tested notebook environment, including development, documentation, and
+Lie-group dependencies:
 
-The library requires:
-- `numpy`: Numerical operations
-- `matplotlib`: Visualization
-- `cvxpy`: Convex optimization and LMI solving
-- `casadi`: Symbolic framework and numerical integration
-- `sympy`: Symbolic mathematics for dynamics classification
-- [`rumoca`](https://rumoca.dev): Modelica compiler (`pip install rumoca`)
+```bash
+python -m pip install -e ".[all]"
+python -m pip install jupyterlab
+jupyter lab
+```
 
-Optional:
-- `cyecca`: Lie group operations for satellite/quadrotor modules (`pip install cp_reach[satellite]`)
+The prebuilt GHCR JupyterLab image is currently private. Authorized users can
+run it locally after authenticating to GHCR; access can be granted to STR
+evaluators.
 
-## Quick Start
+## Minimal Python example
 
-Here's a simple example computing reachable sets for a closed-loop system from Modelica:
+RuMoCA 0.9.20 uses its `Session` API and emits DAE schema 7. The isolated
+workspace below prevents unrelated Modelica files from being discovered during
+compilation.
 
 ```python
+import tempfile
+from pathlib import Path
+
 import numpy as np
 import rumoca
+
 from cp_reach.ir import DaeIR, ir_to_symbolic_statespace
 from cp_reach.reachability import solve_disturbance_LMI
 
-# Compile Modelica model with RuMoCA
-result = rumoca.compile("ClosedLoop.mo")
-json_str = result.to_base_modelica_json()
+model_name = "PendulumClosedLoop"
+model_path = Path(
+    "examples/general/models/pendulum_closed_loop.mo"
+).resolve()
 
-# Load IR and convert to symbolic state space
-ir = DaeIR.from_json_str(json_str)
-ss = ir_to_symbolic_statespace(ir)
+with tempfile.TemporaryDirectory() as workspace:
+    session = rumoca.Session(roots=[], workspace=workspace)
+    model = session.loads(
+        model_path.read_text(),
+        model=model_name,
+        filename=model_path.name,
+    )
+    dae_json = model.to_json("dae")
 
-# Check if error dynamics are linear
-disturbance_inputs = ['d']
-if ss.error_dynamics_are_linear(disturbance_inputs=disturbance_inputs):
-    # Extract A and B_d matrices
-    A, B_d = ss.linearize_error_dynamics(disturbance_inputs=disturbance_inputs)
+ir = DaeIR.from_json_str(dae_json, model_name=model_name)
+state_space = ir_to_symbolic_statespace(ir)
 
-    # Solve LMI for reachable set bounds
-    sol = solve_disturbance_LMI(A_list=[A], B=B_d, w_max=1.0)
+# The Modelica input named d represents the hypothesized disturbance.
+disturbance_inputs = ["d"]
+A, B_d = state_space.linearize_error_dynamics(
+    disturbance_inputs=disturbance_inputs
+)
+solution = solve_disturbance_LMI(
+    A_list=[A],
+    B=B_d,
+    w_max=0.1,
+)
 
-    # Compute per-state bounds from ellipsoid
-    P = np.array(sol["P"])
-    P_inv = np.linalg.inv(P)
-    mu = float(np.max(sol["mu"]))
-    bounds = np.sqrt(mu) * np.sqrt(np.diag(P_inv))
-
-    print(f"Reachable set bounds: {bounds}")
+P_inverse = np.linalg.inv(np.asarray(solution["P"]))
+mu = float(np.max(solution["mu"]))
+state_bounds = np.sqrt(mu) * np.sqrt(np.diag(P_inverse))
+print(state_bounds)
 ```
 
-See [examples/](examples/) for more comprehensive examples including Monte Carlo simulation and visualization.
+The LMI workflow assumes that the selected model, disturbance channels and
+bounds, operating region, and solver result are valid. Record those assumptions
+with every result so the resulting vulnerability hypothesis remains testable.
 
-## Architecture
+## Recommended notebooks
 
-cp_reach is organized into several modules:
+The notebooks currently executed by CI are:
 
-- **`ir`**: Intermediate representation loading from RuMoCA JSON output
-- **`dynamics`**: Symbolic state space representations and dynamics classification
-- **`reachability`**: Core reachability analysis (LMI solving, simulation workflows)
-- **`plotting`**: Visualization utilities for error bounds, trajectories, and flowpipes
-- **`planning`**: Trajectory generation (polynomial paths, waypoint planning)
-- **`physics`**: Rigid body dynamics, angular acceleration, and SE(2,3) kinematics
-- **`applications`**: Domain-specific modules for satellite, quadrotor, and rover systems
+- `examples/general/structured_nonlinear.ipynb`: nonlinear Modelica pendulum,
+  polytopic LMI bounds, continuous-time checks, and Monte Carlo comparison
+- `examples/quadrotor/quadrotor_flowpipe.ipynb`: nested quadrotor flow-tubes
+- `examples/rover/rover_plots.ipynb`: rover safety-envelope visualization
+- `examples/satellite/satellite_error_bounds.ipynb`: rendezvous error bounds
 
-For detailed architecture information, see [ARCHITECTURE.md](ARCHITECTURE.md).
+Open a notebook in JupyterLab, read its configuration cell first, then run all
+cells. Treat the configuration, dependency versions, plots, solver status, and
+saved numeric outputs as one analysis record.
 
-## Examples
+## Package structure
 
-See the [examples/](examples/) directory for:
-- **General**: Linear and nonlinear Modelica model imports with structured workflow
-- **Satellite**: HCW, TH-LTV, and SE(2,3) reachability analysis
-- **Quadrotor**: Log-linearized error dynamics and flowpipe computation
-- **Rover**: EMI disturbance and rollover analysis
+- `cp_reach.ir`: RuMoCA DAE schema-7 loading and symbolic conversion
+- `cp_reach.dynamics`: state-space representations and dynamics classification
+- `cp_reach.reachability`: LMI solvers and simulation workflows
+- `cp_reach.plotting`: flow-tube, trajectory, and error-bound visualization
+- `cp_reach.planning`: reference-trajectory generation
+- `cp_reach.physics`: rigid-body and SE(2,3) dynamics
+- `cp_reach.applications`: rover, quadrotor, and satellite analyses
 
-## Supported Systems
+## Verification
 
-### Linear Systems (Modelica)
-- **Trajectory Planning**: Polynomial reference trajectory generation
-- **Monte Carlo Simulation**: Disturbance simulation with bounded inputs
-- **Reachability Analysis**: LMI-based ellipsoidal over-approximation
-
-### Nonlinear Systems (Modelica)
-- **Polytopic LMI**: Jacobian bounds over state ranges for nonlinear dynamics
-- **Structured Workflow**: Systematic analysis via `SymbolicStateSpace`
-
-### Domain-Specific Modules
-
-**Satellite**:
-- HCW (Hill-Clohessy-Wiltshire) linearized orbital dynamics
-- TH-LTV (Tschauner-Hempel) time-varying linearized dynamics
-- SE(2,3) log-linearized error dynamics
-
-**Quadrotor**:
-- Log-linearized error dynamics on SE(2,3)
-
-**Rover**:
-- EMI disturbance analysis
-- Rollover reachability
-
-## Testing
-
-Run the test suite with pytest:
+Run the Python test suite:
 
 ```bash
 pytest tests/ -v
 ```
 
-The test suite covers LMI solvers, dynamics classification, IR loading, and integration workflows.
+Run the same four notebooks gated in CI:
 
-## License
+```bash
+pytest --nbmake -p no:cacheprovider --nbmake-timeout=600 -v \
+  examples/quadrotor/quadrotor_flowpipe.ipynb \
+  examples/rover/rover_plots.ipynb \
+  examples/satellite/satellite_error_bounds.ipynb \
+  examples/general/structured_nonlinear.ipynb
+```
 
-This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
-
-## Contributing
-
-Contributions are welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Submit a pull request
-
-For major changes, please open an issue first to discuss proposed changes.
-
-## Contact
-
-For questions or support, please:
-- Open an issue on GitHub
-- Contact [Micah Condie](mailto:mkcondie01@gmail.com)
+See [examples/](examples/) for additional implementation details and analyses.

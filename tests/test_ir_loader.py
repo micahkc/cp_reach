@@ -1,305 +1,104 @@
-"""
-Unit tests for the IR loader module in cp_reach.ir.
-"""
+"""Tests for the RuMoCA 0.9.20 DAE schema-7 loader."""
 
 import json
-import tempfile
-from pathlib import Path
 
 import pytest
 
-from cp_reach.ir.loader import DaeIR, Component, _parse_start_value
+from cp_reach.ir.loader import Component, DaeIR, _parse_start_value
 
 
-class TestComponent:
-    """Tests for the Component dataclass."""
-
-    def test_is_parameter(self):
-        """Test parameter detection."""
-        param = Component(name="k", variability="parameter")
-        non_param = Component(name="x", variability="")
-
-        assert param.is_parameter() is True
-        assert non_param.is_parameter() is False
-
-    def test_is_input(self):
-        """Test input detection."""
-        inp = Component(name="d", causality="input")
-        non_inp = Component(name="x", causality="")
-
-        assert inp.is_input() is True
-        assert non_inp.is_input() is False
-
-    def test_is_output(self):
-        """Test output detection."""
-        out = Component(name="y", causality="output")
-        non_out = Component(name="x", causality="")
-
-        assert out.is_output() is True
-        assert non_out.is_output() is False
-
-    def test_is_scalar(self):
-        """Test scalar vs array detection."""
-        scalar = Component(name="x", shape=[])
-        array = Component(name="xs", shape=[3])
-
-        assert scalar.is_scalar() is True
-        assert array.is_scalar() is False
+def test_component_classification():
+    """Component helpers reflect the DAE category and causality."""
+    assert Component(name="k", variability="parameter").is_parameter()
+    assert Component(name="pi", variability="constant").is_constant()
+    assert Component(name="d", causality="input").is_input()
+    assert Component(name="y", causality="output").is_output()
+    assert Component(name="x").is_scalar()
+    assert not Component(name="xs", shape=[3]).is_scalar()
 
 
-class TestDaeIR:
-    """Tests for the DaeIR dataclass."""
+def test_from_dict_loads_schema_7(simple_ir_dict):
+    """The loader extracts all analysis categories from schema 7."""
+    ir = DaeIR.from_dict(simple_ir_dict, model_name="TestModel")
 
-    def test_from_dict_basic(self, simple_ir_dict):
-        """Test loading DaeIR from dictionary."""
-        ir = DaeIR.from_dict(simple_ir_dict)
+    assert ir.model_name == "TestModel"
+    assert ir.schema_version == 7
+    assert ir.get_state_names() == ["x1", "x2"]
+    assert ir.get_input_names() == ["d"]
+    assert ir.get_parameter_names() == ["k"]
+    assert ir.get_algebraic_names() == ["y1"]
+    assert ir.get_param_defaults() == {"k": 1.0}
+    assert ir.n_states() == 2
+    assert ir.n_inputs() == 1
+    assert ir.n_parameters() == 1
+    assert ir.n_algebraics() == 1
 
-        assert ir.model_name == "TestModel"
-        assert ir.rumoca_version == "0.7.0"
-        assert len(ir.states) == 2
-        assert len(ir.inputs) == 1
-        assert len(ir.parameters) == 1
 
-    def test_get_state_names(self, simple_ir_dict):
-        """Test state name extraction."""
-        ir = DaeIR.from_dict(simple_ir_dict)
+def test_from_json_uses_file_stem_as_model_name(simple_ir_dict, tmp_path):
+    """File-based loads retain a useful model identifier outside DAE JSON."""
+    path = tmp_path / "vehicle_model.json"
+    path.write_text(json.dumps(simple_ir_dict))
 
-        names = ir.get_state_names()
+    ir = DaeIR.from_json(path)
 
-        assert "x1" in names
-        assert "x2" in names
-        assert len(names) == 2
+    assert ir.model_name == "vehicle_model"
 
-    def test_get_input_names(self, simple_ir_dict):
-        """Test input name extraction."""
-        ir = DaeIR.from_dict(simple_ir_dict)
 
-        names = ir.get_input_names()
+def test_from_json_str_accepts_model_name(simple_ir_dict):
+    """String-based loads accept the name selected in the RuMoCA session."""
+    ir = DaeIR.from_json_str(json.dumps(simple_ir_dict), model_name="VehicleModel")
 
-        assert names == ["d"]
+    assert ir.model_name == "VehicleModel"
 
-    def test_get_parameter_names(self, simple_ir_dict):
-        """Test parameter name extraction."""
-        ir = DaeIR.from_dict(simple_ir_dict)
 
-        names = ir.get_parameter_names()
+def test_rejects_non_schema_7_data(simple_ir_dict):
+    """Old or unknown DAE schemas fail explicitly."""
+    simple_ir_dict["schema_version"] = 6
 
-        assert names == ["k"]
+    with pytest.raises(ValueError, match="requires RuMoCA DAE schema 7"):
+        DaeIR.from_dict(simple_ir_dict)
 
-    def test_get_param_defaults(self, simple_ir_dict):
-        """Test parameter default extraction."""
-        ir = DaeIR.from_dict(simple_ir_dict)
 
-        defaults = ir.get_param_defaults()
+def test_infer_roles(simple_ir_dict):
+    """Dotted names retain their useful plant/controller grouping."""
+    simple_ir_dict["x"] = {
+        "plant.x": {"causality": "local", "dims": [], "start": None},
+        "controller.x": {"causality": "local", "dims": [], "start": None},
+    }
 
-        assert defaults["k"] == 1.0
+    roles = DaeIR.from_dict(simple_ir_dict).infer_roles()
 
-    def test_n_states(self, simple_ir_dict):
-        """Test state count."""
-        ir = DaeIR.from_dict(simple_ir_dict)
+    assert roles == {"plant.x": "plant", "controller.x": "controller"}
 
-        assert ir.n_states() == 2
 
-    def test_n_inputs(self, simple_ir_dict):
-        """Test input count."""
-        ir = DaeIR.from_dict(simple_ir_dict)
-
-        assert ir.n_inputs() == 1
-
-    def test_from_json_file(self, simple_ir_dict, tmp_path):
-        """Test loading from JSON file."""
-        json_path = tmp_path / "test_model.json"
-        with open(json_path, "w") as f:
-            json.dump(simple_ir_dict, f)
-
-        ir = DaeIR.from_json(json_path)
-
-        assert ir.model_name == "TestModel"
-        assert ir.n_states() == 2
-
-    def test_from_json_str(self, simple_ir_dict):
-        """Test loading from JSON string."""
-        json_str = json.dumps(simple_ir_dict)
-
-        ir = DaeIR.from_json_str(json_str)
-
-        assert ir.model_name == "TestModel"
-
-    def test_infer_roles(self):
-        """Test role inference from variable names."""
-        ir_dict = {
-            "model_name": "RoleTest",
-            "rumoca_version": "",
-            "x": {
-                "plant.x": {"name": "plant.x", "shape": []},
-                "controller.y": {"name": "controller.y", "shape": []},
-            },
-            "y": {},
-            "u": {},
-            "p": {},
-            "cp": {},
-            "fx": [],
-            "fx_init": [],
-            "fz": [],
+def test_constants_are_included_in_defaults(simple_ir_dict):
+    """Constants and parameters are both available for symbolic substitution."""
+    simple_ir_dict["constants"] = {
+        "pi": {
+            "causality": "local",
+            "dims": [],
+            "start": {"Literal": {"value": {"Real": 3.14159}}},
         }
-        ir = DaeIR.from_dict(ir_dict)
+    }
 
-        roles = ir.infer_roles()
+    defaults = DaeIR.from_dict(simple_ir_dict).get_param_defaults()
 
-        assert roles["plant.x"] == "plant"
-        assert roles["controller.y"] == "controller"
-
-    def test_get_algebraic_names(self, simple_ir_dict):
-        """Test algebraic variable name extraction."""
-        ir = DaeIR.from_dict(simple_ir_dict)
-
-        names = ir.get_algebraic_names()
-
-        assert "y1" in names
+    assert defaults == {"k": 1.0, "pi": 3.14159}
 
 
-class TestParseStartValue:
-    """Tests for the _parse_start_value helper function."""
-
-    def test_parse_terminal_float(self):
-        """Test parsing a terminal float value."""
-        ast = {"Terminal": {"token": {"text": "1.5"}}}
-
-        value = _parse_start_value(ast)
-
-        assert value == 1.5
-
-    def test_parse_terminal_integer(self):
-        """Test parsing a terminal integer value."""
-        ast = {"Terminal": {"token": {"text": "42"}}}
-
-        value = _parse_start_value(ast)
-
-        assert value == 42.0
-
-    def test_parse_negative_value(self):
-        """Test parsing a negative value."""
-        ast = {
-            "Unary": {
-                "op": {"Neg": {}},
-                "operand": {"Terminal": {"token": {"text": "3.14"}}},
+def test_parse_numeric_start_values():
+    """Schema-7 real, integer, and negated values are supported."""
+    assert _parse_start_value({"Literal": {"value": {"Real": 2.5}}}) == 2.5
+    assert _parse_start_value({"Literal": {"value": {"Integer": 4}}}) == 4.0
+    assert (
+        _parse_start_value(
+            {
+                "Unary": {
+                    "op": "Minus",
+                    "rhs": {"Literal": {"value": {"Integer": 4}}},
+                }
             }
-        }
-
-        value = _parse_start_value(ast)
-
-        assert value == -3.14
-
-    def test_parse_empty_returns_none(self):
-        """Test that Empty returns None."""
-        value = _parse_start_value("Empty")
-
-        assert value is None
-
-    def test_parse_non_dict_returns_none(self):
-        """Test that non-dict input returns None."""
-        value = _parse_start_value(123)
-
-        assert value is None
-
-    def test_parse_invalid_text_returns_none(self):
-        """Test that non-numeric text returns None."""
-        ast = {"Terminal": {"token": {"text": "not_a_number"}}}
-
-        value = _parse_start_value(ast)
-
-        assert value is None
-
-
-class TestDaeIREdgeCases:
-    """Edge case tests for DaeIR."""
-
-    def test_empty_model(self):
-        """Test handling of model with no variables."""
-        ir_dict = {
-            "model_name": "Empty",
-            "rumoca_version": "",
-            "x": {},
-            "y": {},
-            "u": {},
-            "p": {},
-            "cp": {},
-            "fx": [],
-            "fx_init": [],
-            "fz": [],
-        }
-
-        ir = DaeIR.from_dict(ir_dict)
-
-        assert ir.n_states() == 0
-        assert ir.n_inputs() == 0
-
-    def test_missing_optional_fields(self):
-        """Test handling of missing optional fields."""
-        ir_dict = {
-            "model_name": "Minimal",
-            "x": {},
-            # Missing: rumoca_version, y, u, p, cp, fx, fx_init, fz
-        }
-
-        ir = DaeIR.from_dict(ir_dict)
-
-        assert ir.model_name == "Minimal"
-        assert ir.rumoca_version == ""
-
-    def test_constants_in_defaults(self):
-        """Test that constants are included in param defaults."""
-        ir_dict = {
-            "model_name": "WithConstants",
-            "rumoca_version": "",
-            "x": {},
-            "y": {},
-            "u": {},
-            "p": {},
-            "cp": {
-                "pi": {
-                    "name": "pi",
-                    "variability": {"Constant": {}},
-                    "start": {"Terminal": {"token": {"text": "3.14159"}}},
-                    "shape": [],
-                }
-            },
-            "fx": [],
-            "fx_init": [],
-            "fz": [],
-        }
-
-        ir = DaeIR.from_dict(ir_dict)
-        defaults = ir.get_param_defaults()
-
-        assert "pi" in defaults
-        assert abs(defaults["pi"] - 3.14159) < 0.0001
-
-    def test_array_variable(self):
-        """Test handling of array variables."""
-        ir_dict = {
-            "model_name": "WithArray",
-            "rumoca_version": "",
-            "x": {
-                "xs": {
-                    "name": "xs",
-                    "shape": [3],
-                    "type_name": {"name": [{"text": "Real"}]},
-                    "variability": "Empty",
-                    "causality": "Empty",
-                    "start": "Empty",
-                }
-            },
-            "y": {},
-            "u": {},
-            "p": {},
-            "cp": {},
-            "fx": [],
-            "fx_init": [],
-            "fz": [],
-        }
-
-        ir = DaeIR.from_dict(ir_dict)
-
-        assert ir.states["xs"].shape == [3]
-        assert ir.states["xs"].is_scalar() is False
+        )
+        == -4.0
+    )
+    assert _parse_start_value(None) is None
